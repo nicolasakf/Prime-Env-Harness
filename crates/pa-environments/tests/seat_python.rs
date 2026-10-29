@@ -1,4 +1,4 @@
-use pa_environments::EnvironmentManager;
+use pa_environments::{ActiveInstance, EnvironmentManager};
 use pa_types::environments::{
     EnvironmentLanguage, ExecutionBackend, ExecutionPolicy, RecoveryRequest, SeatId,
 };
@@ -17,9 +17,13 @@ async fn docker_seat_namespaces_and_recovery_are_isolated() {
     seat_python_scope(ExecutionBackend::Docker).await;
 }
 
-// Keep namespace isolation, interruption and recovery against the same instance.
-#[allow(clippy::too_many_lines)]
-async fn seat_python_scope(backend: ExecutionBackend) {
+async fn two_python_seats(
+    backend: ExecutionBackend,
+) -> (
+    tempfile::TempDir,
+    EnvironmentManager,
+    std::sync::Arc<ActiveInstance>,
+) {
     let root = tempfile::tempdir().unwrap();
     let manager = EnvironmentManager::new(root.path().into(), None).unwrap();
     let policy = ExecutionPolicy {
@@ -51,6 +55,112 @@ async fn seat_python_scope(backend: ExecutionBackend) {
         .save(draft.to_str().unwrap(), "python-seats")
         .unwrap();
     let active = manager.enter("python-seats", None, policy).await.unwrap();
+    (root, manager, active)
+}
+
+#[tokio::test]
+async fn aborted_cell_without_effects_restores_the_namespace() {
+    aborted_cell_without_effects(ExecutionBackend::Local).await;
+}
+
+#[cfg(feature = "docker-integration")]
+#[tokio::test]
+async fn docker_aborted_cell_without_effects_restores_the_namespace() {
+    aborted_cell_without_effects(ExecutionBackend::Docker).await;
+}
+
+#[tokio::test]
+async fn undeclared_action_error_lists_the_actions_the_seat_may_use() {
+    let (_root, _manager, active) = two_python_seats(ExecutionBackend::Local).await;
+    let one = SeatId::try_from("agent-1".to_owned()).unwrap();
+    let error = active
+        .invoke(
+            &one,
+            "missing",
+            json!({}),
+            "undeclared",
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "action `missing` is not available to this participant; available actions: increment"
+    );
+    active.leave().await.unwrap();
+}
+
+async fn aborted_cell_without_effects(backend: ExecutionBackend) {
+    let (root, manager, active) = two_python_seats(backend).await;
+    let one = SeatId::try_from("agent-1".to_owned()).unwrap();
+    active
+        .execute_python_seat(&one, "kept = 7", "before", CancellationToken::new())
+        .await
+        .unwrap();
+    // Observing is read-only, so a cell that only observed and then ran away is not uncertain.
+    let signal = CancellationToken::new();
+    let code = "from pathlib import Path\nimport time\nlost = env.observe()\nPath('ready').write_text('ready')\nwhile True:\n    time.sleep(1)";
+    let pending = {
+        let active = active.clone();
+        let signal = signal.clone();
+        let one = one.clone();
+        tokio::spawn(async move {
+            active
+                .execute_python_seat(&one, code, "aborted", signal)
+                .await
+        })
+    };
+    tokio::time::timeout(Duration::from_secs(10), async {
+        while !active
+            .path()
+            .join("seats/agent-1/participant/ready")
+            .exists()
+        {
+            assert!(!pending.is_finished());
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    signal.cancel();
+    assert!(pending.await.unwrap().is_err());
+    active
+        .execute_python_seat(
+            &one,
+            "assert kept == 7\nassert 'lost' not in globals()",
+            "after",
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+    let receipts: Value = serde_json::from_slice(
+        &std::fs::read(active.path().join("seats/agent-1/python-receipts.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipts["aborted"]["request"], json!({"code": code}));
+    assert_eq!(receipts["aborted"]["success"], json!(false));
+    // The instance reopens without a recovery request.
+    let id = active.instance.id.clone();
+    active.leave().await.unwrap();
+    drop(active);
+    let resumed = manager.resume(&id).await.unwrap();
+    resumed
+        .execute_python_seat(
+            &one,
+            "assert kept == 7",
+            "resumed",
+            CancellationToken::new(),
+        )
+        .await
+        .unwrap();
+    resumed.leave().await.unwrap();
+    drop(root);
+}
+
+// Keep namespace isolation, interruption and recovery against the same instance.
+#[allow(clippy::too_many_lines)]
+async fn seat_python_scope(backend: ExecutionBackend) {
+    let (root, manager, active) = two_python_seats(backend).await;
     let one = SeatId::try_from("agent-1".to_owned()).unwrap();
     let two = SeatId::try_from("agent-2".to_owned()).unwrap();
     active
@@ -67,7 +177,7 @@ Path('private-file').write_text('private')",
     let result = active.execute_python_seat(&two, "assert 'private_value' not in globals()\nassert env.invoke('increment', {'amount': 2}) == 2", "two", CancellationToken::new()).await.unwrap();
     assert!(result["execution"]["error"].is_null(), "{result}");
     let signal = CancellationToken::new();
-    let code = "from pathlib import Path\nimport time\nPath('ready').write_text('ready')\nwhile True:\n    time.sleep(1)";
+    let code = "from pathlib import Path\nimport time\nenv.invoke('increment', {'amount': 1})\nPath('ready').write_text('ready')\nwhile True:\n    time.sleep(1)";
     let pending = {
         let active = active.clone();
         let signal = signal.clone();

@@ -47,17 +47,20 @@ pub struct Seat {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RunLimits {
-    pub max_operations: u64,
-    pub max_wakes_per_seat: u64,
-    pub max_wall_clock_seconds: u64,
+    /// Most domain mutations after initialization; `None` is no limit.
+    pub max_operations: Option<u64>,
+    /// Most wakes one agent seat receives; `None` is no limit.
+    pub max_wakes_per_seat: Option<u64>,
+    /// Wall-clock lifetime of the run, pauses included; `None` is no limit.
+    pub max_wall_clock_seconds: Option<u64>,
     /// Zero chooses 2 * agent count + 2 when the roster is provisioned.
     pub stall_turns: u64,
     /// Time a seat gets from the start of a turn to its action. A turn still
     /// running past it is aborted and retried with thinking off.
     pub seat_turn_timeout_seconds: u64,
-    /// Most tokens one model request may emit, thinking included; `None` leaves
-    /// the provider default. A turn that hits it without acting is retried with
-    /// thinking off. At least [`MIN_MAX_OUTPUT_TOKENS`].
+    /// Most tokens one model request may emit, thinking included; `None` (the
+    /// default) leaves the provider default. A turn that hits it without acting is
+    /// retried with thinking off. At least [`MIN_MAX_OUTPUT_TOKENS`].
     pub max_output_tokens: Option<u64>,
     /// Consecutive re-prompts an awaited agent seat receives after a turn that
     /// left the environment unchanged or timed out; zero disables re-prompting.
@@ -67,12 +70,12 @@ pub struct RunLimits {
 impl Default for RunLimits {
     fn default() -> Self {
         Self {
-            max_operations: 500,
-            max_wakes_per_seat: 100,
-            max_wall_clock_seconds: 7200,
+            max_operations: None,
+            max_wakes_per_seat: None,
+            max_wall_clock_seconds: None,
             stall_turns: 0,
-            seat_turn_timeout_seconds: 120,
-            max_output_tokens: Some(8192),
+            seat_turn_timeout_seconds: 300,
+            max_output_tokens: None,
             idle_turn_retries: 2,
         }
     }

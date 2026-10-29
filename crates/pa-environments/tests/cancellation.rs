@@ -46,6 +46,10 @@ async fn cancellation_stops_workers_and_retains_uncertain_intents() {
             (true, true, false),
             (true, true, true),
         ] {
+            // A cancelled cell that never left its kernel is resolved by restarting the
+            // kernel from its checkpoint; leaving mid-cell and a cell stopped inside
+            // its checkpoint stay uncertain, as do cancelled engine mutations.
+            let resolved = python && !by_leave && !checkpoint;
             let active = manager
                 .enter(&definition.id, None, policy.clone())
                 .await
@@ -103,8 +107,9 @@ async fn cancellation_stops_workers_and_retains_uncertain_intents() {
                 .unwrap();
             assert!(result.is_err());
             if !by_leave {
-                assert!(
+                assert_eq!(
                     active.leave().await.is_err(),
+                    !resolved,
                     "cancelled mutations require recovery"
                 );
             }
@@ -123,10 +128,14 @@ async fn cancellation_stops_workers_and_retains_uncertain_intents() {
                 manager.inspect(&id, &SeatId::legacy_human()).await.unwrap(),
                 json!({"value":0})
             );
-            assert!(
-                manager.resume(&id).await.is_err(),
-                "unresolved operations cannot be replayed"
-            );
+            if resolved {
+                manager.resume(&id).await.unwrap().leave().await.unwrap();
+            } else {
+                assert!(
+                    manager.resume(&id).await.is_err(),
+                    "unresolved operations cannot be replayed"
+                );
+            }
         }
     }
 }

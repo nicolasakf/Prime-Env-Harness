@@ -5,6 +5,8 @@ use super::{
     EnvironmentLanguage, EnvironmentManager, ExecutionBackend, ExecutionPolicy, HostCallHandler,
     OperationReceipt, PathBuf, Result, SeatId, Uuid, Value,
 };
+use crate::Worker;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 impl EnvironmentManager {
     pub(super) async fn kernel_source(&self, policy: &ExecutionPolicy) -> Result<PathBuf> {
@@ -86,6 +88,10 @@ impl ActiveInstance {
             .await
     }
 
+    // One cell's lifecycle (intent, bridge, execution, aborted-cell resolution,
+    // checkpoint, receipt) stays in one place so the ordering that decides whether a
+    // cell is resolved or uncertain is read top to bottom.
+    #[allow(clippy::too_many_lines)]
     #[tracing::instrument(skip_all)]
     async fn execute_python_seat_inner(
         self: &Arc<Self>,
@@ -125,14 +131,21 @@ impl ActiveInstance {
         let active = Arc::clone(self);
         let bound_seat = seat.clone();
         let bridge_signal = signal.clone();
+        // Set once the cell issues any host call other than a read-only observe.
+        let effects = Arc::new(AtomicBool::new(false));
+        let bridge_effects = Arc::clone(&effects);
         let host: HostCallHandler = Arc::new(move |call| {
             let seat = bound_seat.clone();
             let active = Arc::clone(&active);
             let host_calls = host_calls.clone();
             let signal = bridge_signal.clone();
+            let effects = Arc::clone(&bridge_effects);
             Box::pin(async move {
                 if signal.is_cancelled() {
                     bail!("Python host call cancelled");
+                }
+                if call.method != "environment.observe" {
+                    effects.store(true, Ordering::SeqCst);
                 }
                 if matches!(
                     call.method.as_str(),
@@ -161,12 +174,47 @@ impl ActiveInstance {
             })
         });
         let agent = seat.clone();
-        let response = tokio::select! {
+        let outcome = tokio::select! {
             () = self.shutdown.cancelled() => {
                 kernel.cancel().await;
                 bail!("instance is leaving; Python outcome is uncertain");
             },
-            result = kernel.request("execute", &agent, request.clone(), signal, Some(&host)) => result?,
+            result = kernel.request("execute", &agent, request.clone(), signal, Some(&host)) => result,
+        };
+        let response = match outcome {
+            Ok(response) => response,
+            Err(error) if !effects.load(Ordering::SeqCst) => {
+                // The kernel process was stopped, but the cell reached nothing the host
+                // tracks beyond this seat's namespace, and the last checkpoint still
+                // holds that namespace from before the cell. Restart from it and record
+                // the cell as cancelled rather than blocking the seat for recovery.
+                // Cells with host-visible effects stay uncertain.
+                let source = self
+                    .kernel_source
+                    .as_ref()
+                    .context("this environment does not provide Python execution")?;
+                *kernel = Worker::start(
+                    source,
+                    &path.join("participant"),
+                    EnvironmentLanguage::Python,
+                    &self.instance.policy,
+                    /*kernel*/ true,
+                )
+                .await
+                .context("restarting Python after an aborted cell")?;
+                let receipt = OperationReceipt {
+                    request: request.clone(),
+                    success: false,
+                    result: json!(format!(
+                        "Python cell aborted ({error:#}); variables were restored to their state before this cell"
+                    )),
+                    ..OperationReceipt::default()
+                };
+                receipts.insert(operation_id.into(), receipt.clone());
+                write_json(&receipts_path, &receipts)?;
+                return receipt_value(&receipt, &request);
+            }
+            Err(error) => return Err(error),
         };
         let checkpoint = value(
             kernel

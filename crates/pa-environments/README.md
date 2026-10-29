@@ -96,9 +96,12 @@ wake admission, run controls, capabilities, and supervised host/seat processes.
 
 `enter_with_roster` validates roles, min/max, uniqueness, occupant constraints and
 limits before creating an instance. Each agent has a separate persisted Python
-namespace and receipt directory (v1 retains its original paths). An uncertain
-cell blocks that seat until RecoveryRequest supplies inspected receipts and an
-explicit namespace reset; other kernels remain usable. Local Python is separate
+namespace and receipt directory (v1 retains its original paths). A cell that is
+cancelled, times out, or loses its worker after only observing is recorded as
+cancelled and the seat's kernel restarts from its last namespace checkpoint. A cell
+interrupted after any other host call is uncertain: it blocks that seat until
+RecoveryRequest supplies inspected receipts and an explicit namespace reset; other
+kernels remain usable. Local Python is separate
 state with shared host-user filesystem access; Docker provides isolation.
 
 `execute_python_seat_with_host` lets the daemon supply authenticated observe/invoke

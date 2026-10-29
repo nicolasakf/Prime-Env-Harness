@@ -177,7 +177,7 @@ fn roster_constraints_are_enforced_before_provisioning() {
         assert!(validate_roster(&manifest, &roster).is_err());
     }
     let mut limited = valid.clone();
-    limited.limits.max_operations = 0;
+    limited.limits.max_operations = Some(0);
     assert!(validate_roster(&manifest, &limited).is_err());
     let mut restricted = manifest;
     restricted.direct_messages = Some(false);
@@ -187,6 +187,27 @@ fn roster_constraints_are_enforced_before_provisioning() {
     for invalid in ["", "with/slash", "space name", "é"] {
         assert!(SeatId::try_from(invalid.to_owned()).is_err());
     }
+}
+
+#[test]
+fn run_limits_left_unset_or_null_mean_no_cap() {
+    use pa_types::environments::RunLimits;
+    let limits: RunLimits = serde_json::from_value(
+        json!({"max_operations":100,"max_wakes_per_seat":null,"seat_turn_timeout_seconds":60}),
+    )
+    .unwrap();
+    assert_eq!(
+        limits,
+        RunLimits {
+            max_operations: Some(100),
+            max_wakes_per_seat: None,
+            max_wall_clock_seconds: None,
+            stall_turns: 0,
+            seat_turn_timeout_seconds: 60,
+            max_output_tokens: None,
+            idle_turn_retries: 2,
+        }
+    );
 }
 
 #[test]

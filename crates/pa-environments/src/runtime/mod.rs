@@ -516,6 +516,13 @@ impl EnvironmentManager {
         } else {
             definition.validation.actions.clone()
         };
+        let kernel_source =
+            if !inspect && definition.manifest.python_execution && instance.policy.python_execution
+            {
+                Some(self.kernel_source(&instance.policy).await?)
+            } else {
+                None
+            };
         let committed_sequence = checkpoint.next_sequence.saturating_sub(1);
         let commits = tokio::sync::watch::channel(committed_sequence).0;
         let history = HistoryWriter::new(&path);
@@ -533,6 +540,7 @@ impl EnvironmentManager {
                 closed: false,
             }),
             python: Mutex::new(BTreeMap::new()),
+            kernel_source,
             commits,
             inspection: inspect,
             integrations: self.integrations.clone(),
@@ -551,11 +559,7 @@ impl EnvironmentManager {
                 )
                 .await?;
         }
-        if !inspect
-            && active.definition.manifest.python_execution
-            && active.instance.policy.python_execution
-        {
-            let source = self.kernel_source(&active.instance.policy).await?;
+        if let Some(source) = &active.kernel_source {
             for seat in active
                 .roster()
                 .seats
@@ -568,7 +572,7 @@ impl EnvironmentManager {
                     seat.id.clone(),
                     Arc::new(Mutex::new(
                         Worker::start(
-                            &source,
+                            source,
                             &scratch,
                             EnvironmentLanguage::Python,
                             &active.instance.policy,
@@ -602,6 +606,8 @@ pub struct ActiveInstance {
     path: PathBuf,
     runtime: Mutex<InstanceRuntime>,
     python: Mutex<BTreeMap<SeatId, Arc<Mutex<Worker>>>>,
+    /// Where seat kernels start from; set only when seat Python is provided.
+    kernel_source: Option<PathBuf>,
     integrations: Option<HostCallHandler>,
     lease: std::sync::Mutex<Option<File>>,
     shutdown: CancellationToken,

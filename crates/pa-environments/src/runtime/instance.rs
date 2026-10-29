@@ -230,7 +230,16 @@ impl ActiveInstance {
             .find(|descriptor| {
                 descriptor.name == action && descriptor.allowed_roles().contains(&role)
             })
-            .context("action is not available to this participant")?;
+            .with_context(|| {
+                let available = self
+                    .actions
+                    .iter()
+                    .filter(|descriptor| descriptor.allowed_roles().contains(&role))
+                    .map(|descriptor| descriptor.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("action `{action}` is not available to this participant; available actions: {available}")
+            })?;
         jsonschema::validator_for(&descriptor.input_schema)?
             .validate(&arguments)
             .map_err(|error| anyhow::anyhow!("invalid action input: {error}"))?;

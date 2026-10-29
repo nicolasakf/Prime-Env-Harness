@@ -148,9 +148,12 @@ pub fn validate_roster(manifest: &EnvironmentManifest, roster: &InstanceRoster) 
         version => bail!("unsupported environment protocol {version}"),
     }
     let limits = &roster.limits;
-    if limits.max_operations == 0
-        || limits.max_wakes_per_seat == 0
-        || limits.max_wall_clock_seconds == 0
+    if [
+        limits.max_operations,
+        limits.max_wakes_per_seat,
+        limits.max_wall_clock_seconds,
+    ]
+    .contains(&Some(0))
         || limits.seat_turn_timeout_seconds == 0
     {
         bail!("run limits must be positive");
