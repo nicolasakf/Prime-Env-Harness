@@ -1,0 +1,70 @@
+{
+  "protocol_version": 2,
+  "name": "Function Discovery",
+  "purpose": "One agent reverse-engineers hidden functions by querying them, then submits a Python implementation scored on hidden test cases.",
+  "language": "python",
+  "instructions": "You are the only player. Hidden Python functions, labelled F1, F2, and so on, are shown one at a time. For the current function you see its signature as text (for example f(a: int, b: int) -> int), a plain description of the values each parameter accepts, the return type (a trailing \"| null\" means it can return null), a note when some inputs make it raise an error, and sometimes a hint. Arguments are positional, and your submission must define f with the same parameters in the same order. Work out what it computes by probing it, then submit your own implementation. Functions are deterministic but not only arithmetic: they may apply string, list, date, parsing, or state-machine rules, and some combine several rules or behave differently in different input regions.\n\nquery: send up to 20 argument lists in one call, for example {\"calls\": [[3, 4], [0, 0]]}. Each argument list gives every parameter in order, inside the stated types and bounds (a bool is not an int). Every call that returns an output spends one query from the function's budget (see query_budget in the setup configuration and queries_left in the view). If the hidden function raises an error on an input, you see the error type and message in place of an output and that call is not charged, so you can send another one. A batch that is invalid, has an argument outside the stated types and bounds, or is longer than the remaining budget is rejected and costs nothing. From ipython you can make the same calls with env.invoke(action, arguments), where action is \"query\", \"note\", or \"submit\" and arguments is the same object the tool takes. For example, env.invoke(\"query\", {\"calls\": [[3, 4], [0, 0]]}) returns the same results as the env_query tool and spends the same budget. A function label such as F3 is not an action name. In ipython, env.observe() returns the same view the tools return, including the full query log for the current function (env.observe()[\"current\"][\"queries\"]), so you never need to copy results by hand.\n\nnote: replace your scratchpad for the current function with hypotheses and patterns. The view shows it back to you.\n\nYou remember nothing between turns except the view, your note, and your ipython namespace. Keep the data you collect and your conclusions in ipython or in the note: when the query log gets long, the view omits the oldest queries.\n\nipython cells share your turn's time limit. A cell still running when the turn's deadline passes is aborted, and an aborted cell can leave Python unavailable for the rest of the run, though your other tools keep working. Keep every cell short, test a search on small inputs first, and bound every loop; do not start a long brute-force search.\n\nsubmit: send Python source that defines a top-level function f taking exactly the function's parameters, in order. Each function gets exactly one accepted submission. Once you submit, that function is closed: the result says so and names the next function, and every later query or note applies to that next function, never to the one you submitted. It is run against hidden test cases, which include edge cases at the bounds, and you are told only how many passed. Then the next function starts, and the run ends after the last one. Your score is the number of hidden test cases passed across all functions, so use your queries to find edge-case behavior before you submit. You cannot get more queries: when they run out, submit your best implementation from the data you have instead of waiting.\n\nSubmissions run in a sandbox. Allowed imports: math, itertools, functools, collections, re, bisect, heapq, fractions, statistics, datetime. No classes, no file or network access, no str.format (use f-strings), no names or strings containing a double underscore, and a few seconds per test case. Source that breaks these static rules is rejected and may be resubmitted. Source that raises or times out on a test case only fails that case. Return plain values: ints, floats, strings, bools, None, or lists. A numeric answer within the function's stated tolerance, if any, counts as correct.\n\nDo not try to read the hidden functions, their tests, or the engine's files. There is no table talk: say is rejected. If your turn ends without an action you get a warning; after two warnings, a third missed turn in a row forfeits that function with a score of zero.",
+  "python_execution": true,
+  "recommended_backend": "docker",
+  "roles": [
+    {
+      "name": "solver",
+      "description": "The agent that probes the hidden functions and submits implementations",
+      "min_seats": 1,
+      "max_seats": 1,
+      "occupants": [
+        "human",
+        "agent"
+      ]
+    }
+  ],
+  "direct_messages": false,
+  "agent_context": "stateless",
+  "setup_schema": {
+    "type": "object",
+    "properties": {
+      "query_budget": {
+        "type": "integer",
+        "title": "Queries per function",
+        "description": "Probe budget for each function, unless the function module sets its own.",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 20
+      },
+      "functions": {
+        "type": "array",
+        "title": "Function ids",
+        "description": "Ids from the function module to play, in order; empty plays all of them. Ids are visible to the agent, so keep them neutral.",
+        "items": {
+          "type": "string"
+        },
+        "uniqueItems": true,
+        "default": []
+      },
+      "tiers": {
+        "type": "array",
+        "title": "Difficulty tiers",
+        "description": "Play only functions in these tiers, in module order; empty plays every tier.",
+        "items": {
+          "type": "string",
+          "enum": [
+            "starter",
+            "easy",
+            "medium",
+            "hard",
+            "extreme"
+          ]
+        },
+        "uniqueItems": true,
+        "default": []
+      }
+    },
+    "required": [
+      "query_budget",
+      "functions",
+      "tiers"
+    ],
+    "additionalProperties": false
+  },
+  "missed_turns": true
+}

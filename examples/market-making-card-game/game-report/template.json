@@ -1,10 +1,9 @@
 {
   "id": "game-report",
   "title": "Game report: P&L, EV vs realized, timing, cost",
-  "definition_id": "sequential-card-market-stateless",
+  "definition_id": "market-making-card-game",
   "compatible_versions": [
-    "98884fcc9cfebcf06070ba126ddda2a0d1e89823c5bad9880a95b8c6561adf46",
-    "bcb75ae3bac1899e5572319b33020cf67d152b081bd1fb4e99025174c44efe01"
+    "f49d29511637ffd2555a6822bd96b7e603990123b153b1e150420a274b24265d"
   ],
   "revision": "v1",
   "requires": [

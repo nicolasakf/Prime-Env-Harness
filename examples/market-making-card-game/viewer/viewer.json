@@ -1,0 +1,13 @@
+{
+  "id": "replay",
+  "title": "Market replay: board, quotes, positions, P&L by hand",
+  "definition_id": "market-making-card-game",
+  "compatible_versions": [
+    "f49d29511637ffd2555a6822bd96b7e603990123b153b1e150420a274b24265d"
+  ],
+  "revision": "v1",
+  "content_hash": "2a20e18cf9164188",
+  "shell": true,
+  "verified_against": [],
+  "saved_at": "2026-10-18T23:17:20+00:00"
+}

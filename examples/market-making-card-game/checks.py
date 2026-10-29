@@ -169,6 +169,24 @@ def privacy(game, players):
         assert all(card not in card_values(agent) for card in hidden)
 
 
+def frames(game, players):
+    """Live frames hide the opponent's cards and the unrevealed board until settlement."""
+    state = snapshot(game)
+    masked = {player: ["??" for _ in cards] for player, cards in state["hands"].items()}
+    perspectives = [{"kind": "public"}] + [{"kind": "seat", "seat": player} for player in players]
+    for perspective in perspectives:
+        frame, metadata = request(game, "frame", perspective)
+        assert metadata == {} and snapshot(game) == state
+        assert json.loads(json.dumps(frame)) == frame
+        seat = perspective.get("seat")
+        assert frame["hands"] == {player: state["hands"][player] if player == seat else masked[player]
+                                  for player in players}
+        assert frame["community"] == frame["revealed"] == state["revealed"]
+        assert {key: value for key, value in frame.items() if key not in ("hands", "community")} == {
+            key: value for key, value in state.items() if key not in ("hands", "community")}
+        assert all(card not in card_values(frame) for card in state["community"][len(state["revealed"]):])
+
+
 def settlement(game, players):
     observation = observe(game, players[0])
     state = snapshot(game)
@@ -198,6 +216,7 @@ for players in (("alice", "bob"), ("dealer-7", "reader_2"), ("seat-z", "human-se
     assert len(set(dealt["hands"][first] + dealt["hands"][second] + dealt["community"])) == 6
     known_deal(game, players)
     privacy(game, players)
+    frames(game, players)
     game = roundtrip(game, players)
     for seat in players:
         before = snapshot(game)

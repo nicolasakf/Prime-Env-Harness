@@ -1,4 +1,4 @@
-"""Sequential, two-seat trading game with private card information."""
+"""Market making card game: sequential, two-seat trading with private card information."""
 import json
 from copy import deepcopy
 from random import SystemRandom
@@ -127,6 +127,18 @@ class TradingCards:
         if s["phase"] == "finished":
             visible["winners"] = [p for p in s["players"] if s["total_pnl"][p] == max(s["total_pnl"].values())]
         return visible
+
+    def frame(self, perspective):
+        """What a live viewer draws: the snapshot with unrevealed community cards removed and
+        every hand masked except the viewing seat's own, until settlement makes hands public."""
+        frame = deepcopy(self.state)
+        frame["community"] = list(frame["revealed"])
+        if frame["phase"] == "trading":
+            viewer = perspective.get("seat") if perspective.get("kind") == "seat" else None
+            for player, cards in frame["hands"].items():
+                if player != viewer:
+                    frame["hands"][player] = ["??" for _ in cards]
+        return frame
 
     def agent_view(self, participant):
         """Everything an agent sees each turn: current state plus a bounded history.

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market making card game</title>
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="stage">
+      <header class="headline">
+        <h1 id="title">Market making card game</h1>
+        <p id="subtitle"></p>
+      </header>
+      <div class="desk">
+        <div class="player" id="player-0"></div>
+        <div class="market-panel">
+          <div class="round" id="round"></div>
+          <div class="board" id="board"></div>
+          <div class="pips" id="pips"></div>
+          <div class="quote" id="quote"></div>
+          <div class="settle" id="settle" hidden></div>
+        </div>
+        <div class="player" id="player-1"></div>
+      </div>
+      <p class="move" id="move" aria-live="polite"></p>
+      <section class="tape">
+        <h2 id="tape-title">Quotes and trades</h2>
+        <div id="tape"></div>
+        <p class="key">
+          <span><i class="key-quote"></i>Quote, bid to ask, in the quoter's color</span>
+          <span><i class="key-trade"></i>Trade at its price: fill is the buyer, outline the seller</span>
+        </p>
+      </section>
+    </section>
+    <aside class="side">
+      <section>
+        <h2>This hand</h2>
+        <ol class="log" id="log"></ol>
+      </section>
+      <section>
+        <h2>Cumulative P&amp;L by hand</h2>
+        <div id="chart"></div>
+      </section>
+      <section>
+        <h2>Settled hands</h2>
+        <div class="scroll"><table class="hands" id="hands"></table></div>
+      </section>
+    </aside>
+  </main>
+  <script src="viewer.js"></script>
+</body>
+</html>

@@ -92,7 +92,7 @@ immediately:
 | Example                            | What it is                                                                                    |
 | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `texas-holdem`                     | No-limit Texas Hold'em for 2 to 9 seats, human or agent, with private cards and a game report |
-| `sequential-card-market-stateless` | A two-player card-value trading game with cumulative P&L, stateless agents, and a game report |
+| `market-making-card-game` | A two-player market making game: trade a contract on the sum of card ranks with cumulative P&L, stateless agents, a game report, and a viewer |
 
 
 ```bash
