@@ -1,4 +1,4 @@
-# Sequential Card Market: interaction fixes and balanced opening priority
+# Market Making Card Game: interaction fixes and balanced opening priority
 
 Status: implementation plan only. No code, saved definition, execution policy or run has changed.
 

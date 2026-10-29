@@ -1,6 +1,6 @@
 {
   "protocol_version": 2,
-  "name": "Sequential Card Market",
+  "name": "Market Making Card Game",
   "purpose": "Two-player sequential card-value trading over multiple freshly dealt hands, with cumulative P&L and automatic turn attention.",
   "language": "python",
   "python_execution": false,
