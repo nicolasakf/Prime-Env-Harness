@@ -655,6 +655,55 @@ async fn prompt_injected_message_persists_one_custom_row() {
     );
 }
 
+/// Several injected rows admitted together run ONE model turn: the
+/// provider sees each row's text once, in order, and the transcript keeps
+/// one custom row per message.
+#[tokio::test]
+async fn prompt_injected_messages_runs_one_turn_over_every_row() {
+    let provider = Arc::new(ScriptedProvider::new(test_model()));
+    provider.push_text_turn("both acknowledged");
+    let (session, _tmp) = digest_session(Arc::clone(&provider)).await;
+    let rows: Vec<pa_types::session::CustomMessage> = ["first notice", "second notice"]
+        .into_iter()
+        .map(|text| pa_types::session::CustomMessage {
+            custom_type: "rlm_child_terminal_notice".to_string(),
+            content: pa_types::ai::UserContent::Text(text.to_string()),
+            display: true,
+            details: None,
+            timestamp: 0,
+            rest: serde_json::Map::default(),
+        })
+        .collect();
+    session.prompt_injected_messages(&rows).await.unwrap();
+    session.agent().wait_for_idle().await;
+
+    let calls = provider.calls();
+    assert_eq!(calls.len(), 1, "one model turn for the batch: {calls:?}");
+    let user_texts: Vec<String> = calls[0]
+        .messages
+        .iter()
+        .filter(|message| matches!(message, pa_agent::types::Message::User(_)))
+        .map(user_text)
+        .collect();
+    assert_eq!(user_texts.len(), 3, "digest plus both rows: {calls:?}");
+    assert_eq!(&user_texts[1..], ["first notice", "second notice"]);
+
+    let custom_texts: Vec<String> = session
+        .entries()
+        .await
+        .iter()
+        .filter_map(|entry| match entry {
+            FileEntry::CustomMessage { payload, .. }
+                if payload.custom_type == "rlm_child_terminal_notice" =>
+            {
+                Some(payload.content.text())
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(custom_texts, ["first notice", "second notice"]);
+}
+
 /// A delivered agent message's custom row produces the byte-identical
 /// provider context to the plain-prompt delivery (TS
 /// `acceptAgentMessagePrompt`: the custom message replaces the turn's

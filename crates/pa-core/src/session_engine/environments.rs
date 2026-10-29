@@ -4,7 +4,7 @@ use crate::tools::tool_definition::{ExecutionMode, ToolDefinition, ToolExecution
 use anyhow::{Context, Result};
 use pa_agent::agent_loop::TransformContextFn;
 use pa_agent::stream::StreamFn;
-use pa_agent::types::{AgentMessage, AgentTool, ThinkingLevel};
+use pa_agent::types::{AgentMessage, AgentTool, Message, ThinkingLevel, ToolResultContent};
 use pa_types::environments::{
     AgentContext, SeatBinding, SeatCall, SeatId, SeatReply, ENVIRONMENT_WAKE_CUSTOM_TYPE,
 };
@@ -196,7 +196,10 @@ pub(crate) fn participant_tools(
 /// Shapes a seat's context and learns whether this turn is a retry. A stateless
 /// seat resends only its latest wake and the turn's own messages (the transcript
 /// stays complete on disk). Every seat records the latest wake's retry attempt
-/// for the request limits to read.
+/// for the request limits to read. A retry only exists to get the seat to act, so
+/// once the turn holds an accepted action the attempt drops to zero: a seat that
+/// keeps working in the same turn thinks again instead of staying without thinking
+/// until a new wake arrives.
 pub(crate) fn seat_context(
     stateless: bool,
     attempt: Arc<AtomicU64>,
@@ -221,11 +224,32 @@ pub(crate) fn seat_context(
                     details["view_version"].as_u64().unwrap_or_default(),
                 )
             }));
-            if let Some(AgentMessage::Custom(wake)) = latest.map(|index| &messages[index]) {
+            if let Some((index, AgentMessage::Custom(wake))) =
+                latest.map(|index| (index, &messages[index]))
+            {
+                // An action the environment accepted since the wake: a rejected call is
+                // an error result, and a call refused for a stale view ran nothing.
+                let acted = messages[index + 1..].iter().any(|message| {
+                    let AgentMessage::Standard(Message::ToolResult(result)) = message else {
+                        return false;
+                    };
+                    let stale = result.content.iter().any(|block| match block {
+                        ToolResultContent::Text(text) => serde_json::from_str::<Value>(&text.text)
+                            .is_ok_and(|reply| reply["result"]["rejected"] == "stale_view"),
+                        ToolResultContent::Image(_) => false,
+                    });
+                    (result.tool_name.starts_with("env_") || result.tool_name == "say")
+                        && !result.is_error
+                        && !stale
+                });
                 attempt.store(
-                    wake.payload["details"]["attempt"]
-                        .as_u64()
-                        .unwrap_or_default(),
+                    if acted {
+                        0
+                    } else {
+                        wake.payload["details"]["attempt"]
+                            .as_u64()
+                            .unwrap_or_default()
+                    },
                     Ordering::Relaxed,
                 );
             }
@@ -300,7 +324,7 @@ pub(crate) fn participant_prompt(binding: &SeatBinding) -> String {
 mod tests {
     use super::*;
     use pa_agent::abort::AbortSignal;
-    use pa_agent::types::{CustomAgentMessage, ToolResultContent};
+    use pa_agent::types::{CustomAgentMessage, ToolResultMessage};
 
     fn wake(text: &str) -> AgentMessage {
         AgentMessage::Custom(CustomAgentMessage {
@@ -534,6 +558,73 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(attempt.load(Ordering::Relaxed), 0);
+    }
+
+    fn action_result(tool: &str, text: &str, is_error: bool) -> AgentMessage {
+        AgentMessage::Standard(Message::ToolResult(ToolResultMessage {
+            tool_call_id: "call".into(),
+            tool_name: tool.into(),
+            content: vec![ToolResultContent::text(text)],
+            details: None,
+            is_error,
+            timestamp: 0,
+        }))
+    }
+
+    /// A retried turn runs without thinking only until the seat has acted; a seat that keeps
+    /// working in the same turn, with no new wake, gets its thinking back.
+    #[tokio::test]
+    async fn a_retried_seat_thinks_again_once_its_action_is_accepted() {
+        let attempt = Arc::new(AtomicU64::new(0));
+        let transform = seat_context(true, Arc::clone(&attempt), Arc::default());
+        let learn = |history: Vec<AgentMessage>| {
+            let transform = Arc::clone(&transform);
+            let attempt = Arc::clone(&attempt);
+            async move {
+                transform(history, AbortSignal::default()).await.unwrap();
+                attempt.load(Ordering::Relaxed)
+            }
+        };
+        let accepted = r#"{"result":{"ok":true},"state":{"version":9}}"#;
+        let stale = r#"{"result":{"rejected":"stale_view","message":"Not executed"},"state":{"version":9}}"#;
+        // Nothing has acted yet, or the only calls were refused: still the retry.
+        assert_eq!(learn(vec![wake_with_attempt(1)]).await, 1);
+        assert_eq!(
+            learn(vec![
+                wake_with_attempt(1),
+                action_result("env_buy", "illegal move", true),
+                action_result("ipython", accepted, false),
+                action_result("env_buy", stale, false),
+            ])
+            .await,
+            1
+        );
+        // An accepted action ends the retry for the rest of the turn.
+        assert_eq!(
+            learn(vec![
+                wake_with_attempt(1),
+                action_result("env_buy", accepted, false),
+            ])
+            .await,
+            0
+        );
+        assert_eq!(
+            learn(vec![
+                wake_with_attempt(2),
+                action_result("say", accepted, false)
+            ])
+            .await,
+            0
+        );
+        // An action from before the wake belongs to an earlier turn.
+        assert_eq!(
+            learn(vec![
+                action_result("env_buy", accepted, false),
+                wake_with_attempt(1),
+            ])
+            .await,
+            1
+        );
     }
 
     #[tokio::test]

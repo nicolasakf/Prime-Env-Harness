@@ -239,11 +239,21 @@ pub fn kernel_provisioner(
     on_unavailable_skills: Option<crate::kernel::provisioner::UnavailableSkillsCallback>,
     on_bootstrap_result: Option<crate::kernel::provisioner::KernelBootstrapResultHandler>,
 ) -> Arc<KernelProvisioner> {
-    let mut env = HashMap::with_capacity(1);
+    let mut env = HashMap::with_capacity(2);
     env.insert(
         "PRIME_AGENT_CODING_AGENT_DIR".to_string(),
         agent_dir.to_string_lossy().to_string(),
     );
+    // The runtime resolves session-local harness state (`rlm.harness.*`
+    // without `global_=True`) under `$RLM_SESSION_DIR/harness`, the same
+    // directory the host reads for the harness digest and refinement.
+    // Without it every local write raises "Local harness state requires ...".
+    if let Some(dir) = &snapshot_dir {
+        env.insert(
+            "RLM_SESSION_DIR".to_string(),
+            dir.to_string_lossy().to_string(),
+        );
+    }
     Arc::new(KernelProvisioner::new(
         cwd,
         IpythonKernelProvisionerOptions {

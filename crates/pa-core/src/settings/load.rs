@@ -24,6 +24,7 @@ const KNOWN_FIELDS: &[&str] = &[
     "transport",
     "steeringMode",
     "followUpMode",
+    "agentMessageMode",
     "theme",
     "compaction",
     "autoRefine",

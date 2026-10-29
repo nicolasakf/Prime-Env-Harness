@@ -332,6 +332,11 @@ pub struct Settings {
     pub transport: Option<TransportSetting>,
     pub steering_mode: Option<QueueModeSetting>,
     pub follow_up_mode: Option<QueueModeSetting>,
+    /// Delivery mode for queued agent-to-agent messages (a sub-agent's
+    /// replies to its parent, peer sends): `all` hands every message
+    /// already queued for the session to one turn, `one-at-a-time` runs
+    /// one turn per message. Prime Env setting, no TS counterpart.
+    pub agent_message_mode: Option<QueueModeSetting>,
     pub theme: Option<String>,
     pub compaction: Option<CompactionSettings>,
     pub auto_refine: Option<AutoRefineSettings>,

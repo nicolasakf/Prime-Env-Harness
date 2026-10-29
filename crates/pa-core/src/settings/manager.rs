@@ -158,6 +158,12 @@ impl SettingsManager {
         self.runtime_overrides = deep_merge(&self.runtime_overrides, overrides);
     }
 
+    /// The global scope alone, for settings that must not vary with the
+    /// working directory's project file.
+    pub(crate) fn global(&self) -> &Settings {
+        &self.global
+    }
+
     /// Mutable global settings for the setters in sibling modules (the
     /// TS setters mutate `globalSettings` then save).
     pub(crate) fn global_mut(&mut self) -> &mut Settings {
@@ -776,6 +782,17 @@ impl SettingsManager {
             .unwrap_or(QueueModeSetting::OneAtATime)
     }
 
+    /// The agent-message queue's delivery mode (`agentMessageMode`): `all`
+    /// delivers every agent message already queued for the session as ONE
+    /// turn at the next delivery point; `one-at-a-time` delivers one per
+    /// turn. The default is `all`.
+    #[must_use]
+    pub fn get_agent_message_mode(&self) -> QueueModeSetting {
+        self.merged
+            .agent_message_mode
+            .unwrap_or(QueueModeSetting::All)
+    }
+
     #[must_use]
     pub fn get_theme(&self) -> Option<&str> {
         self.merged.theme.as_deref()
@@ -1185,6 +1202,44 @@ mod tests {
             manager.get_steering_mode(),
             QueueModeSetting::OneAtATime,
             "the explicit one-at-a-time setting still selects one-per-turn"
+        );
+    }
+
+    #[test]
+    fn agent_message_mode_defaults_to_all_and_honors_the_setting() {
+        let default_manager = SettingsManager::in_memory(&Settings::default());
+        assert_eq!(
+            default_manager.get_agent_message_mode(),
+            QueueModeSetting::All
+        );
+        let configured = SettingsManager::in_memory(&Settings {
+            agent_message_mode: Some(QueueModeSetting::OneAtATime),
+            ..Settings::default()
+        });
+        assert_eq!(
+            configured.get_agent_message_mode(),
+            QueueModeSetting::OneAtATime
+        );
+    }
+
+    #[test]
+    fn enabled_models_ignore_the_project_scope() {
+        let storage: Arc<dyn SettingsStorage> =
+            Arc::new(super::super::storage::InMemorySettingsStorage::default());
+        storage
+            .with_lock(SettingsScope::Global, &mut |_| {
+                Some(r#"{ "enabledModels": ["p/new"] }"#.into())
+            })
+            .unwrap();
+        storage
+            .with_lock(SettingsScope::Project, &mut |_| {
+                Some(r#"{ "enabledModels": ["p/stale"] }"#.into())
+            })
+            .unwrap();
+        let manager = SettingsManager::from_storage(storage);
+        assert_eq!(
+            manager.get_enabled_models(),
+            Some(vec!["p/new".to_string()])
         );
     }
 

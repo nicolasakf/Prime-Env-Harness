@@ -39,6 +39,26 @@ impl AgentSession {
         &self,
         message: &pa_types::session::CustomMessage,
     ) -> anyhow::Result<PromptOutcome> {
+        self.prompt_injected_messages(std::slice::from_ref(message))
+            .await
+    }
+
+    /// Admit several injected custom messages as ONE turn's prompt: each
+    /// row is appended in order and keeps its own transcript
+    /// representation, and the model sees them in a single run. This is
+    /// the batched form of [`AgentSession::prompt_injected_message`]
+    /// (same busy rule, digest and next-turn rows, and image-routing
+    /// reset).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the session is already busy, when the pending
+    /// digest row cannot be captured, when a row cannot be converted, or
+    /// when the agent rejects the injected prompt.
+    pub async fn prompt_injected_messages(
+        &self,
+        messages: &[pa_types::session::CustomMessage],
+    ) -> anyhow::Result<PromptOutcome> {
         let state = self.agent.state().await;
         let busy = state.is_streaming;
         if busy {
@@ -51,14 +71,19 @@ impl AgentSession {
             prompt_messages.push(digest_row);
         }
         prompt_messages.extend(self.take_next_turn_rows().await);
-        let custom_row = session_message_to_loop(&SessionAgentMessage::Custom(message.clone()))
-            .ok_or_else(|| anyhow::anyhow!("injected custom message conversion failed"))?;
+        let custom_rows = messages
+            .iter()
+            .map(|message| {
+                session_message_to_loop(&SessionAgentMessage::Custom(message.clone()))
+                    .ok_or_else(|| anyhow::anyhow!("injected custom message conversion failed"))
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
         // The dispatch-time routing decision fires for every dispatched
         // turn (TS `_startPreparedTurnActions` runs it per prepared turn
         // action): an injected row never carries images, so it clears a
         // route left behind by the previous dispatched turn.
         self.apply_image_model_routing(&[], &[]).await?;
-        prompt_messages.push(custom_row);
+        prompt_messages.extend(custom_rows);
         self.agent
             .prompt(pa_agent::agent::AgentPromptInput::Messages(prompt_messages))
             .await?;

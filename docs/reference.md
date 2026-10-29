@@ -194,7 +194,7 @@ agents-only runs alive; human leave pauses and releases its instance.
 Defaults bound operations, wakes, elapsed time, time to action and output
 tokens per request; monotonic reported environment progress and quiescence
 determine stalls. A seat that misses its deadline or token cap without acting is
-retried with thinking off, and an awaited seat that ends a turn without acting
+retried with thinking off until its first accepted action, and an awaited seat that ends a turn without acting
 is re-prompted, within `idle_turn_retries`. Agent seats see the instance's actual
 setup configuration in their prompt. A definition may set
 `agent_context: "stateless"` so each request carries only its `agent_view`

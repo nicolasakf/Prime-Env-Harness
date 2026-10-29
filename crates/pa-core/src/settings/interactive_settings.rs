@@ -356,10 +356,13 @@ impl SettingsManager {
     }
 
     /// `enabledModels` (TS `getEnabledModels`/`setEnabledModels`): the
-    /// persisted model-scope patterns (`None` is no filter).
+    /// persisted model-scope patterns (`None` is no filter). The scope is
+    /// one list for every chat, so it reads the global scope the setter
+    /// writes; a project settings file in the chat's directory (for the
+    /// home directory, the legacy global file) never overrides it.
     #[must_use]
     pub fn get_enabled_models(&self) -> Option<Vec<String>> {
-        self.settings().enabled_models.clone()
+        self.global().enabled_models.clone()
     }
 
     /// `enabledModels` setter (`None` is no filter).
