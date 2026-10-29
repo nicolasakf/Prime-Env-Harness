@@ -49,6 +49,7 @@ fn burst_runner(engine: Arc<dyn SessionEngine>) -> TurnRunner {
         active_service_tier: None,
         steering_mode: "all".to_string(),
         follow_up_mode: "one-at-a-time".to_string(),
+        agent_message_mode: "all".to_string(),
         forced_all_steering: false,
         scoped_models: Vec::new(),
         scope_origin: super::ScopeOrigin::Session,

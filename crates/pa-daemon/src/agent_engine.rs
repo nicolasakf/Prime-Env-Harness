@@ -53,6 +53,7 @@ pub(crate) use tests::FAUX_TEST_LOCK;
 
 mod environment_builder;
 mod environment_port;
+mod environment_view;
 mod environments;
 mod goalcore;
 mod lifecycle;

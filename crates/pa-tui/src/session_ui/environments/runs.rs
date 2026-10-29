@@ -20,6 +20,9 @@ pub(crate) enum EnvironmentRunsUpdate {
         id: String,
         messages: Result<Vec<Value>, String>,
     },
+    /// The viewer page of an ended run: its replay. A run without a
+    /// compatible viewer is the normal case, so a failed fetch opens nothing.
+    Viewer(Value),
 }
 
 impl SessionUi {
@@ -97,6 +100,30 @@ impl SessionUi {
         });
     }
 
+    /// Fetch an ended run's replay page off the UI loop (the daemon exports it
+    /// first when it is missing) and open it in the browser once it lands.
+    pub(crate) fn spawn_environment_run_viewer(&self, id: String) {
+        let updates = self.environment_run_updates.clone();
+        let client = self.client.clone();
+        let active_session_id = self.active_session_id.clone();
+        tokio::spawn(async move {
+            let fetched = tokio::time::timeout(
+                Duration::from_mins(3),
+                client.request_ok(DaemonCommand::Env {
+                    id: None,
+                    active_session_id,
+                    operation: "view".into(),
+                    parameters: json!({"id": id}),
+                    rest: Map::default(),
+                }),
+            )
+            .await;
+            if let Ok(Ok(viewer)) = fetched {
+                let _ = updates.send(EnvironmentRunsUpdate::Viewer(viewer));
+            }
+        });
+    }
+
     /// Fold a landed fetch in. A run list: the dock follows it with the
     /// panel closed, an open panel keeps its selection, and a failure
     /// surfaces only inside the open panel. A transcript: shown when its run
@@ -110,6 +137,11 @@ impl SessionUi {
             EnvironmentRunsUpdate::Runs(runs) => runs,
             EnvironmentRunsUpdate::Transcript { id, messages } => {
                 self.apply_environment_run_transcript(&id, messages, view);
+                return;
+            }
+            EnvironmentRunsUpdate::Viewer(viewer) => {
+                self.open_environment_viewer(&viewer, view);
+                self.dirty = true;
                 return;
             }
         };
@@ -194,6 +226,7 @@ impl SessionUi {
             }
             Some(EnvironmentRunsAction::View(run)) => {
                 view.environment_runs_view = None;
+                self.spawn_environment_run_viewer(run.instance.id.clone());
                 self.open_environment_run_transcript(run, view);
             }
             Some(EnvironmentRunsAction::Stop(run)) => {

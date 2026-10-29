@@ -20,7 +20,12 @@ can make each one now or defer it.
 4. Before writing code, summarize the decisions and open items in a few lines
    and ask the user to confirm. Bring open items back when they become concrete:
    at validation, before the first run, or after the first run shows the need.
-5. Keep the execution policy question separate. It always requires an explicit
+5. Do not ask whether to add the environment to the repository's `examples/`
+   folder, and do not add it there on your own. Draft it with
+   `create_environment` and save it with `save_environment`, so it lives under
+   `~/.prime-env-harness`. Add or copy it into `examples/` only when the user
+   explicitly asks for that.
+6. Keep the execution policy question separate. It always requires an explicit
    answer before validation (see the skill's policy section).
 
 Skip topics that do not apply. A one-seat document workflow has no turn order
@@ -119,11 +124,11 @@ before the first run.
 
 | Question | Run limit (default) |
 | --- | --- |
-| How long may a seat deliberate before acting? | `seat_turn_timeout_seconds` (120) |
-| How many output tokens per model request, thinking included? | `max_output_tokens` (8192; `null` uses the provider default) |
+| How long may a seat deliberate before acting? | `seat_turn_timeout_seconds` (300) |
+| How many output tokens per model request, thinking included? | `max_output_tokens` (no limit: the provider default) |
 | How many re-prompts for a seat that ends its turn without acting? | `idle_turn_retries` (2; 0 disables) |
-| How long may the whole run take, paused time included? | `max_wall_clock_seconds` (7200) |
-| How many mutations and wakes per seat? | `max_operations` (500), `max_wakes_per_seat` (100) |
+| How long may the whole run take, paused time included? | `max_wall_clock_seconds` (no limit) |
+| How many mutations and wakes per seat? | `max_operations`, `max_wakes_per_seat` (no limit) |
 
 Harness behavior to explain when asking:
 
@@ -131,7 +136,8 @@ Harness behavior to explain when asking:
   seat, and restarts after each action. A seat that already acted is not
   retried.
 - A turn that hits the deadline or the token cap without acting is retried
-  with thinking off. A turn that ends without acting while still awaited is
+  with thinking off, until the seat's first accepted action; later requests in
+  that turn think again. A turn that ends without acting while still awaited is
   re-prompted. Both draw on `idle_turn_retries`. When it runs out, the run
   stalls (idle) or pauses (timeout) until someone resumes it.
 - If a missed turn has a natural meaning in the domain (a warning, then a

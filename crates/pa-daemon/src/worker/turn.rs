@@ -575,6 +575,7 @@ impl TurnRunner {
                 .map(|item| crate::engine::PromptBatchRow {
                     text: item.message.clone(),
                     images: item.images.clone(),
+                    custom_message: item.custom_message.clone(),
                 })
                 .collect(),
             message: first.message.clone(),

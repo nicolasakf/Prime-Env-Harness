@@ -81,14 +81,17 @@ re-checked and now lists this version. If you changed the page, say what changed
 | | Viewer | Export |
 | --- | --- | --- |
 | What it is | Reusable page source for one environment definition | One run's self-contained replay page |
-| Where | `<root>/viewers/<definition-id>/<viewer-id>/` | `<root>/instances/<instance-id>/viewers/<viewer-id>/` |
+| Where | `<root>/viewers/<definition-id>/<viewer-id>/` | `<root>/replays/<definition-id>/<instance-id>/` |
 | Contents | `viewer.json`, `index.html`, local `.js`, `.css`, images | `index.html` (viewer, run data, playback bar), `provenance.json` |
 | Names a run? | Never | Always |
 | Pinned to | Definition versions it was checked on (`compatible_versions`) | The viewer revision and version it was built from |
 | Edit it | Only with the user's approval | Never by hand; export again |
 
 `<root>` is `~/.prime-env-harness/environments`. The viewer id is a short name
-such as `replay`. A live view serves the saved viewer directly; nothing is copied.
+such as `replay`. Every game's exports live together under `<root>/replays/`, grouped by
+definition id, with one export per run; exporting with a different viewer needs
+`--replace`. Builds from an unsaved viewer folder go to `_development/` inside
+the run's folder. A live view serves the saved viewer directly; nothing is copied.
 
 ## Where the data comes from
 

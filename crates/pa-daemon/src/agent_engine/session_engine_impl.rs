@@ -1461,7 +1461,14 @@ impl SessionEngine for AgentSessionEngine {
                 )) {
                     return;
                 }
-                self.run_turns(TurnPrompt::Injected(message), aborted, &mut emit);
+                self.run_turns(
+                    TurnPrompt::Injected {
+                        message,
+                        batch: Vec::new(),
+                    },
+                    aborted,
+                    &mut emit,
+                );
             } else {
                 emit(EngineEvent::Done(Ok(())));
             }
@@ -1470,26 +1477,28 @@ impl SessionEngine for AgentSessionEngine {
         // The injected custom row (wire `role: "custom"`) parses to its
         // session shape first: an unparseable row fails the turn instead
         // of double-representing it (the loop would admit a user row with
-        // the same text while the row already persists and renders).
-        let injected = match &request.custom_message {
-            Some(custom) => {
-                match serde_json::from_value::<pa_types::session::AgentMessage>(custom.clone()) {
-                    Ok(pa_types::session::AgentMessage::Custom(parsed)) => Some(parsed),
-                    Ok(_) => {
-                        emit(EngineEvent::Done(Err(
-                            "injected custom message must carry role \"custom\"".to_string(),
-                        )));
-                        return;
-                    }
-                    Err(error) => {
-                        emit(EngineEvent::Done(Err(format!(
-                            "injected custom message parse failed: {error}"
-                        ))));
-                        return;
-                    }
-                }
+        // the same text while the row already persists and renders). The
+        // co-delivered rows of an injected turn (batched agent messages)
+        // parse the same way.
+        let parsed_injected = request
+            .custom_message
+            .as_ref()
+            .map(|custom| {
+                let batch = request
+                    .batch
+                    .iter()
+                    .filter_map(|row| row.custom_message.as_ref())
+                    .map(parse_injected_custom)
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok((parse_injected_custom(custom)?, batch))
+            })
+            .transpose();
+        let injected = match parsed_injected {
+            Ok(injected) => injected,
+            Err(error) => {
+                emit(EngineEvent::Done(Err(error)));
+                return;
             }
-            None => None,
         };
         // The accepted turn row: an injected custom row replaces the user
         // message — the row persists and renders as itself while the model
@@ -1543,16 +1552,20 @@ impl SessionEngine for AgentSessionEngine {
                 }
                 content.push(block);
             }
-            if !emit(EngineEvent::UserMessage(json!({
-                "role": "user",
-                "content": content,
-                "timestamp": now_millis(),
-            }))) {
+            let accepted_row = match &row.custom_message {
+                Some(custom) => EngineEvent::CustomMessage(custom.clone()),
+                None => EngineEvent::UserMessage(json!({
+                    "role": "user",
+                    "content": content,
+                    "timestamp": now_millis(),
+                })),
+            };
+            if !emit(accepted_row) {
                 return;
             }
         }
         let turn_prompt = match injected {
-            Some(custom) => TurnPrompt::Injected(custom),
+            Some((message, batch)) => TurnPrompt::Injected { message, batch },
             None => TurnPrompt::User {
                 text: request.message.clone(),
                 images: request.images.clone(),
@@ -1569,7 +1582,10 @@ impl SessionEngine for AgentSessionEngine {
             TurnPrompt::User { images, batch, .. } => {
                 !images.is_empty() || batch.iter().any(|row| !row.images.is_empty())
             }
-            TurnPrompt::Injected(message) => Self::custom_message_carries_images(message),
+            TurnPrompt::Injected { message, batch } => {
+                Self::custom_message_carries_images(message)
+                    || batch.iter().any(Self::custom_message_carries_images)
+            }
         };
         if let Err(refusal) = self.arm_image_turn_route(carries_images) {
             emit(EngineEvent::Done(Err(refusal)));
@@ -1619,5 +1635,15 @@ impl SessionEngine for AgentSessionEngine {
                 agent.set_follow_up_mode(mode);
             }
         }
+    }
+}
+
+/// Parse an injected turn's wire custom row (`role: "custom"`) to its
+/// session shape.
+fn parse_injected_custom(custom: &Value) -> Result<pa_types::session::CustomMessage, String> {
+    match serde_json::from_value::<pa_types::session::AgentMessage>(custom.clone()) {
+        Ok(pa_types::session::AgentMessage::Custom(parsed)) => Ok(parsed),
+        Ok(_) => Err("injected custom message must carry role \"custom\"".to_string()),
+        Err(error) => Err(format!("injected custom message parse failed: {error}")),
     }
 }

@@ -167,10 +167,16 @@ impl EnvironmentHost {
             } else {
                 roster.limits.stall_turns
             };
-            let reason = if state.operations >= roster.limits.max_operations {
+            let reason = if roster
+                .limits
+                .max_operations
+                .is_some_and(|max| state.operations >= max)
+            {
                 Some("operation limit")
-            } else if now.saturating_sub(state.started_at) / 1000
-                >= roster.limits.max_wall_clock_seconds
+            } else if roster
+                .limits
+                .max_wall_clock_seconds
+                .is_some_and(|max| now.saturating_sub(state.started_at) / 1000 >= max)
             {
                 Some("wall-clock limit")
             } else if confirmed_timeout {
@@ -256,7 +262,10 @@ impl EnvironmentHost {
                 .copied()
                 .unwrap_or_default()
                 < through_seq
-                && count >= roster.limits.max_wakes_per_seat
+                && roster
+                    .limits
+                    .max_wakes_per_seat
+                    .is_some_and(|max| count >= max)
             {
                 state.phase = RunPhase::Paused;
                 state.reason = Some(format!("wake limit for {}", seat.id));

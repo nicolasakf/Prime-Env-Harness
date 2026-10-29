@@ -427,11 +427,17 @@ impl AgentSessionEngine {
                             .await
                             .map(|_| ())
                     }
-                    TurnPrompt::Injected(message) => engine
-                        .session
-                        .prompt_injected_message(message)
-                        .await
-                        .map(|_| ()),
+                    TurnPrompt::Injected { message, batch } => {
+                        let rows: Vec<_> = std::iter::once(message)
+                            .chain(batch.iter())
+                            .cloned()
+                            .collect();
+                        engine
+                            .session
+                            .prompt_injected_messages(&rows)
+                            .await
+                            .map(|_| ())
+                    }
                 }
             } else {
                 agent.continue_run().await

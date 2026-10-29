@@ -518,6 +518,7 @@ pub const FEATURE_NAMES: &[&str] = &[
     "environment_runs_panel",
     "environment_run_transcript",
     "environment_live_view",
+    "environment_replay_view",
     "environment_seat_intervention",
     "idle_notification",
 ];

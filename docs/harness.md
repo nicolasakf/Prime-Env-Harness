@@ -676,11 +676,11 @@ cannot use ordinary resume controls.
 
 | Run limit | Default |
 | --- | --- |
-| Domain mutations after initialization | 500 |
-| Wakes per agent | 100 |
-| Wall-clock lifetime | 7200 seconds |
-| Time to action (`seat_turn_timeout_seconds`) | 120 seconds |
-| Output tokens per model request, thinking included (`max_output_tokens`) | 8192 |
+| Domain mutations after initialization (`max_operations`) | no limit |
+| Wakes per agent (`max_wakes_per_seat`) | no limit |
+| Wall-clock lifetime (`max_wall_clock_seconds`) | no limit |
+| Time to action (`seat_turn_timeout_seconds`) | 300 seconds |
+| Output tokens per model request, thinking included (`max_output_tokens`) | no limit (provider default) |
 | Settled turns without revision change | `2 * agent_count + 2` |
 | Re-prompts per awaited agent (`idle_turn_retries`) | 2 |
 
@@ -688,19 +688,26 @@ Limits live in the roster's `limits` object, are saved in `instance.json`, and
 take the defaults above when omitted. They are per-run settings, separate from
 the definition and from execution policy call/preparation bounds, so one
 definition can run short probes and long matches. Roster `limits` accepts
-positive bounds; `stall_turns: 0` chooses the derived default,
-`idle_turn_retries: 0` disables re-prompting, and `max_output_tokens: null`
-leaves the provider default. Operation/wake/time/turn bounds pause; no progress
-stalls. Elapsed time starts at original creation and includes pauses. Resume
-does not reset cumulative budgets, so an exhausted run can pause again
-immediately. Each seat's prompt states its deadline and token cap.
+positive bounds, or `null` (or omission) for no limit on `max_operations`,
+`max_wakes_per_seat`, `max_wall_clock_seconds`, and `max_output_tokens`;
+`seat_turn_timeout_seconds` must be positive. `stall_turns: 0` chooses the
+derived default and `idle_turn_retries: 0` disables re-prompting.
+Operation/wake/time/turn bounds pause; no progress stalls. Elapsed time starts at
+original creation and includes pauses. Resume does not reset cumulative budgets,
+so an exhausted run can pause again immediately. Each seat's prompt states its
+deadline, and its token cap when one is set. Entering or resuming a run prints
+the limits in effect, so the user sees them before the first turn. Because most
+caps are off by default, a run with unattended agents and no limits can spend
+without bound: set `max_operations`, `max_wakes_per_seat`, or
+`max_wall_clock_seconds` when that matters.
 
 The deadline bounds time to action. It runs only while progress metadata lists
 the seat in `waiting_for` (or no metadata exists), and it restarts each time the
 seat acts. The token cap is applied to every seat request; a thinking level
 whose budget does not fit steps down. A turn that passes the deadline, or hits
 the cap, without acting is aborted and its retained wake replays with thinking
-off. A seat that already acted is not retried: its leftover turn is cut, counted
+off, until the seat's first accepted action in that turn; its later requests think
+again, even though no new wake arrives. A seat that already acted is not retried: its leftover turn is cut, counted
 as a post-action abort, and spends no budget, and its next turn keeps thinking.
 
 Progress revisions are nondecreasing. A changed revision resets no-progress
@@ -775,7 +782,8 @@ environments/
   prepared/                            backend dependency caches
   validation/<draft-id>/                attempts/latest report
   report-templates/<definition-id>/     reusable report notebooks
-  viewers/<definition-id>/<viewer-id>/  optional replay pages for ended runs
+  viewers/<definition-id>/<viewer-id>/  optional viewer pages (source, no run data)
+  replays/<definition-id>/<instance-id>/ replay exports of ended runs (index.html, provenance.json)
   instances/<instance-id>/
     instance.json                      pinned version, policy, roster
     owner.lock                         exclusive active owner
@@ -840,6 +848,14 @@ Intents precede dispatch; receipt/snapshot commit together. Interrupted actions
 or malformed successful responses that may have mutated state block ordinary
 resume and are never automatically replayed. Uncertain Python cells require
 evidence and reset of the affected namespace; other seat kernels are independent.
+
+A seat cell that the host cancels, times out, or loses to a worker crash is not
+uncertain when it made no host call other than `observe`. The host restarts that
+seat's kernel from its last namespace checkpoint, records the cell as cancelled in
+the seat's receipts, and the seat keeps playing with its variables as they were
+before the cell. A cell that called `invoke` or an integration stays uncertain.
+Files an aborted local cell wrote in its scratch directory are not covered; use
+Docker where that matters.
 
 Inspect intents, state, authorized transcripts, and external receipts, then
 use `/env recover <id> <json>`. The v2 fields include:
@@ -951,7 +967,8 @@ for the newest version while a saved viewer omits it. The environments
 skill's `assets/viewers/viewer_tool.py` saves viewer source under
 `viewers/<definition-id>/<viewer-id>/` with the definition versions it supports,
 and exports one self-contained HTML file per run under
-`instances/<instance-id>/viewers/<viewer-id>/`. The export holds one step per
+`replays/<definition-id>/<instance-id>/`, one folder per run beside every other
+game's. The export holds one step per
 committed operation (state, the operation, and its routed table events), the
 harness playback bar, and the `env` bridge the viewer draws from. It runs in a
 sandboxed frame whose content security policy allows inline code and data URLs
@@ -976,6 +993,17 @@ public perspective. From the builder, `/env view <instance-id>` and
 `view_instance(instance)` give the public perspective only. A seat sees its own
 operation details; other operations reach a live page only through its frames and
 public events. Acting from a viewer is not implemented.
+
+Entering a run opens its viewer in the browser without a command, beside the table
+screen in the terminal. `/env enter`, `/env resume` and `/env watch` open the live
+page (the human's seat at a table, the public perspective for a spectator) while the
+run is running, paused or stalled. Selecting an ended run (stopped or finished) in the
+runs panel opens its replay together with the saved transcript; the daemon exports the
+replay with the viewer tool when it is missing or a saved viewer is newer than the
+export, so that step needs Python 3.10+ (`PRIME_ENV_PYTHON` selects it). A run needing
+recovery has no replay. A definition without a saved viewer listing the run's version
+opens nothing, and the readiness result's `viewer` field says why. The builder's
+`/env view <instance-id>` opens the replay of an ended run the same way.
 
 
 ### Builder boundaries, changelogs, and harness recommendations
@@ -1028,7 +1056,7 @@ partial equivalents describe the data available without the terminal interaction
 | `/env enter <id> local\|docker <roster-json>` | Builder | Starts directly with the supplied backend/roster and default setup arguments. | `start_instance(definition, seats, limits=limits, policy=policy)` |
 | `/env enter <id> <full-request-json>` | Builder | Starts directly when JSON includes `roster`; accepts policy, roster, and `setup_arguments`. | `start_instance(definition, seats, limits=limits, policy=policy, config=setup_arguments)` |
 | `/env runs` | Builder | Lists persisted instances. | `list_instances()` |
-| `/env view [public]` / `/env view <instance-id>` | Table / Builder | Opens the live viewer in the browser: the human's seat (or `public`) at the table, the public perspective from the builder. Needs `frame(perspective)` and a saved viewer listing the run's version. | `view_instance(instance)` (public URL) |
+| `/env view [public]` / `/env view <instance-id>` | Table / Builder | Opens the live viewer in the browser: the human's seat (or `public`) at the table, the public perspective from the builder, or the replay of an ended run. Needs a saved viewer listing the run's version, and `frame(perspective)` for a live page. | `view_instance(instance)` (public URL) |
 | `/env watch <instance-id>` | Builder | Attaches to the public spectator table of an agents-only instance; rejects human-occupied tables. | No attachment API; `table_log(instance, since_seq=0)` is a privileged log read, including private deliveries. |
 | `/env resume [instance-id]` | Builder | Without an ID, opens saved-instance suggestions; with an ID, restores the pinned instance and attaches without rerunning setup/initialization. A paused run may still need `resume_run`. | None |
 | `/env recover <instance-id> <recovery-json>` | Builder | Reconciles uncertain operations using inspected evidence, a replacement snapshot, matching receipts, and required Python resets. Requires released ownership; does not replay actions. | None |

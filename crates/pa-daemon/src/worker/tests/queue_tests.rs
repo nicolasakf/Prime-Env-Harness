@@ -503,3 +503,74 @@ async fn forced_batch_arming_classifies_the_visible_plain_rows() {
         );
     }
 }
+
+fn agent_message_test_item(message: &str, policy: TurnPolicy) -> QueuedItem {
+    let mut item = priority_test_item(message, policy);
+    item.custom_message = Some(json!({
+        "role": "custom",
+        "customType": "agent_message",
+        "content": message,
+    }));
+    item.agent_message = Some(message.to_string());
+    item
+}
+
+fn batch_texts(batch: &[QueuedItem]) -> Vec<&str> {
+    batch.iter().map(|item| item.message.as_str()).collect()
+}
+
+/// Under `agentMessageMode: "all"` the agent messages already queued
+/// behind the front co-deliver in queue order, stopping at the first item
+/// that is not an agent message or has another turn class.
+#[test]
+fn agent_messages_co_deliver_in_queue_order_under_mode_all() {
+    let mut core = SessionCore::test_core(None, "/tmp".to_string());
+    core.steering_mode = "one-at-a-time".to_string();
+    core.agent_message_mode = "all".to_string();
+    for item in [
+        agent_message_test_item("reply a", TurnPolicy::Queued),
+        agent_message_test_item("reply b", TurnPolicy::Queued),
+        priority_test_item("user steer", TurnPolicy::Queued),
+        agent_message_test_item("reply c", TurnPolicy::Queued),
+    ] {
+        core.steering.push_back(item);
+    }
+    assert_eq!(
+        batch_texts(&gather_delivery_batch(&mut core, Lane::Steering)),
+        ["reply a", "reply b"]
+    );
+    assert_eq!(
+        batch_texts(&gather_delivery_batch(&mut core, Lane::Steering)),
+        ["user steer"]
+    );
+    assert_eq!(
+        batch_texts(&gather_delivery_batch(&mut core, Lane::Steering)),
+        ["reply c"]
+    );
+}
+
+/// `agentMessageMode: "one-at-a-time"` keeps one agent message per turn
+/// on both lanes, whatever the lane's own queue mode says.
+#[test]
+fn agent_messages_deliver_one_per_turn_under_mode_one_at_a_time() {
+    let mut core = SessionCore::test_core(None, "/tmp".to_string());
+    core.steering_mode = "all".to_string();
+    core.follow_up_mode = "all".to_string();
+    core.agent_message_mode = "one-at-a-time".to_string();
+    for text in ["reply a", "reply b"] {
+        core.steering
+            .push_back(agent_message_test_item(text, TurnPolicy::Queued));
+        core.follow_up
+            .push_back(agent_message_test_item(text, TurnPolicy::Queued));
+    }
+    for lane in [Lane::Steering, Lane::FollowUp] {
+        assert_eq!(
+            batch_texts(&gather_delivery_batch(&mut core, lane)),
+            ["reply a"]
+        );
+        assert_eq!(
+            batch_texts(&gather_delivery_batch(&mut core, lane)),
+            ["reply b"]
+        );
+    }
+}

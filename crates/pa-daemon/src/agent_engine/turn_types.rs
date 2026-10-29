@@ -48,7 +48,14 @@ pub(crate) enum TurnPrompt {
     /// continuations, RLM child terminal notices): the loop admission
     /// carries the row itself, so the transcript and the compaction walk
     /// hold one representation of the turn.
-    Injected(pa_types::session::CustomMessage),
+    ///
+    /// `batch` holds the injected rows co-delivered with the primary
+    /// (queued agent messages under `agentMessageMode: "all"`): one
+    /// admission over every row, each persisted as its own custom row.
+    Injected {
+        message: pa_types::session::CustomMessage,
+        batch: Vec<pa_types::session::CustomMessage>,
+    },
 }
 
 /// What the turn-boundary consumption did to the run.

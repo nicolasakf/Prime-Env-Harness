@@ -28,7 +28,7 @@ async fn capabilities_direct_messages_controls_and_emitted_telemetry() {
     manager.save(draft.to_str().unwrap(), "counter").unwrap();
     let definition = manager.store().definition("counter", None).unwrap().0;
     let mut roster = pa_environments::default_roster(&definition.manifest).unwrap();
-    roster.limits.max_operations = 1;
+    roster.limits.max_operations = Some(1);
     let instance = manager
         .enter_with_roster(
             "counter",
@@ -339,13 +339,16 @@ environment=E()
         .save(draft.to_str().unwrap(), "resume-wake")
         .unwrap();
     let definition = manager.store().definition("resume-wake", None).unwrap().0;
+    // Runs have no wall-clock cap by default; tests that age a run past one need it set.
+    let mut roster = pa_environments::default_roster(&definition.manifest).unwrap();
+    roster.limits.max_wall_clock_seconds = Some(7200);
     let instance = manager
         .enter_with_roster(
             "resume-wake",
             None,
             ExecutionPolicy::default(),
             json!({}),
-            pa_environments::default_roster(&definition.manifest).unwrap(),
+            roster,
         )
         .await
         .unwrap();

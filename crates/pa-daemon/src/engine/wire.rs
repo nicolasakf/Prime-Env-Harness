@@ -31,6 +31,11 @@ pub struct PromptRequest {
 pub struct PromptBatchRow {
     pub text: String,
     pub images: Vec<pa_agent::types::ImageContent>,
+    /// The injected custom row (wire `role: "custom"`) this co-delivered
+    /// row persists and renders as, when the batch is an injected-row
+    /// turn (batched agent messages): `text` is its model-facing content.
+    /// `None` for a plain user row.
+    pub custom_message: Option<Value>,
 }
 
 /// The saved session context TS `createAgentSession` reads off the session's

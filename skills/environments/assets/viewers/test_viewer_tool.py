@@ -90,6 +90,7 @@ class ViewerToolTest(unittest.TestCase):
     def test_export_embeds_one_step_per_operation_and_inlines_the_viewer(self):
         code, result = self.run_tool("export", "run-1", "--source", str(self.source))
         self.assertEqual(code, 0, result)
+        self.assertEqual(Path(result["html"]), self.root / "replays" / DEFINITION / "run-1" / "_development" / "index.html")
         page = Path(result["html"]).read_text()
         data = decode_page(page)
         states, state = [], None
@@ -136,6 +137,8 @@ class ViewerToolTest(unittest.TestCase):
         self.assertEqual((code, result["trial"]), (0, True))
         code, result = self.run_tool("export", "run-1")
         self.assertEqual((code, result["viewer_revision"], result["trial"]), (0, "v2", False))
+        export = self.root / "replays" / DEFINITION / "run-1"
+        self.assertEqual((Path(result["html"]), (export / "provenance.json").is_file()), (export / "index.html", True))
         code, result = self.run_tool("export", "run-1")
         self.assertEqual((code, "--replace" in result["refused"]), (1, True))
         self.assertEqual(self.run_tool("find", "run-1")[1]["exports"][0]["state"], "current")

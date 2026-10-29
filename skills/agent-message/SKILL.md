@@ -47,6 +47,21 @@ if child is not None:
   the target's current work allows (`send` does not block waiting for that).
   Delivered receipts carry `deliveredAt`, queued receipts carry `queuedAt`.
 
+## Queued delivery
+
+Messages that arrive while the target is busy wait in its queue. When the
+target is next free, the `agentMessageMode` setting in `settings.json` decides
+how they are delivered:
+
+- `"all"` (default): every agent message already queued is delivered together as
+  one turn. Each message keeps its own sender and text, in the order it was
+  queued, so a parent with several children answers all ready replies in a
+  single turn instead of one turn per reply. A reply that has not arrived yet
+  never holds the others back.
+- `"one-at-a-time"`: one turn per message.
+
+The setting is read when a session starts, so a change applies to new sessions.
+
 ## Safety
 
 - Do not delete a child immediately after `send`: delivered follow-ups may still

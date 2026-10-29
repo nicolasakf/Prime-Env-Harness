@@ -137,10 +137,10 @@ that makes the same logical move with a new tool-call ID is a new operation;
 domain rules must reject it when inappropriate. Restore must preserve phase and
 submission/turn state. Never claim unconditional exactly-once external effects.
 
-Default run bounds are 500 environment operations, 100 wakes per agent, two hours
-elapsed (pauses included), 120 seconds to act, 8192 output tokens per request,
-two re-prompts per awaited seat, and `2 * agent_count + 2` settled turns without
-revision progress. The 120-second deadline applies only while `waiting_for`
+Default run bounds: no cap on environment operations, wakes per agent, elapsed
+time, or output tokens per request; 300 seconds to act; two re-prompts per
+awaited seat; and `2 * agent_count + 2` settled turns without revision
+progress. The time-to-act deadline applies only while `waiting_for`
 lists the seat, and restarts after each action. A seat that already acted is not
 retried; its leftover turn is cut and counted as a post-action abort.
 

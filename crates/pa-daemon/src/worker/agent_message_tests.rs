@@ -41,6 +41,37 @@ fn queue_texts(core: &Mutex<SessionCore>, lane: Lane) -> Vec<String> {
     .collect()
 }
 
+/// A created session seeds its agent-message delivery mode from the
+/// `agentMessageMode` setting and defaults to batching.
+#[tokio::test]
+async fn create_seeds_the_agent_message_mode_from_settings() {
+    let default_worker = created_worker().await;
+    assert_eq!(
+        default_worker.core.lock().unwrap().agent_message_mode,
+        "all"
+    );
+
+    let configured = test_worker();
+    let agent_dir = configured.config.agent_dir.clone();
+    std::fs::create_dir_all(&agent_dir).unwrap();
+    std::fs::write(
+        agent_dir.join("settings.json"),
+        json!({ "agentMessageMode": "one-at-a-time" }).to_string(),
+    )
+    .unwrap();
+    let created = configured
+        .dispatch(
+            "create",
+            &json!({ "noSession": true, "cwd": "/tmp", "name": "target" }),
+        )
+        .await;
+    assert!(created.success, "create failed: {created:?}");
+    assert_eq!(
+        configured.core.lock().unwrap().agent_message_mode,
+        "one-at-a-time"
+    );
+}
+
 /// Receipt shape (`createAgentSessionMessageReceipt`): id, source,
 /// target endpoint, sender echo, delivered status and timestamp while
 /// the session is idle, and the rendered prompt on the steering lane.

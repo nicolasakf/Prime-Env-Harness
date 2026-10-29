@@ -957,6 +957,99 @@ fn injected_custom_turn_holds_one_representation() {
     assert_eq!(assistant_rows, 1, "entries: {entries:?}");
 }
 
+/// Injected custom rows co-delivered as one batch (queued agent
+/// messages) run ONE model turn: each row is accepted as its own custom
+/// row in delivery order, no user row appears, and the engine transcript
+/// holds one custom row per message and a single assistant reply.
+#[test]
+fn batched_injected_custom_rows_run_one_turn() {
+    let _faux = FAUX_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let (engine, _dir) = faux_engine_with_settings(
+        &serde_json::json!({ "responses": [{"text": "both replies read"}] }),
+        1,
+    );
+    let rows: Vec<Value> = [
+        "[agent-message from child:a]\n\nfirst",
+        "[agent-message from child:b]\n\nsecond",
+    ]
+    .iter()
+    .map(|content| {
+        serde_json::json!({
+            "role": "custom",
+            "customType": "agent_message",
+            "content": content,
+            "display": true,
+            "timestamp": crate::util::now_ms(),
+        })
+    })
+    .collect();
+    let mut events: Vec<EngineEvent> = Vec::new();
+    engine.run_prompt(
+        0,
+        PromptRequest {
+            batch: vec![crate::engine::PromptBatchRow {
+                text: rows[1]["content"].as_str().unwrap().to_string(),
+                images: Vec::new(),
+                custom_message: Some(rows[1].clone()),
+            }],
+            images: Vec::new(),
+            message: rows[0]["content"].as_str().unwrap().to_string(),
+            source: "user".to_string(),
+            agent_message_id: None,
+            custom_message: Some(rows[0].clone()),
+        },
+        &|| false,
+        &mut |event| {
+            events.push(event);
+            true
+        },
+    );
+    let accepted: Vec<&Value> = events
+        .iter()
+        .filter_map(|event| match event {
+            EngineEvent::CustomMessage(row) if row["customType"] == "agent_message" => Some(row),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        accepted,
+        rows.iter().collect::<Vec<_>>(),
+        "events: {events:?}"
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, EngineEvent::UserMessage(_))),
+        "the injected batch must not emit a user row: {events:?}"
+    );
+    assert_eq!(
+        assistant_texts(&events),
+        vec!["both replies read".to_string()]
+    );
+    let entries = engine_session_entries(&engine);
+    let persisted: Vec<String> = entries
+        .iter()
+        .filter_map(|entry| match entry {
+            pa_types::session::FileEntry::CustomMessage { payload, .. }
+                if payload.custom_type == "agent_message" =>
+            {
+                Some(payload.content.text())
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        persisted,
+        [
+            "[agent-message from child:a]\n\nfirst",
+            "[agent-message from child:b]\n\nsecond"
+        ],
+        "entries: {entries:?}"
+    );
+}
+
 /// A `/goal` start schedules its continuation as an injected custom
 /// row (TS `_runOrQueueGoalContext` -> the prepared-turn primary
 /// record): the engine session's transcript holds the goal-context

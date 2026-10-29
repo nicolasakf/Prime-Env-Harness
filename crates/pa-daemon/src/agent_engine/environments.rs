@@ -9,6 +9,7 @@ use pa_types::environments::{EnvironmentSessionProfile, ExecutionPolicy, Instanc
 use serde_json::{json, Value};
 
 use super::environment_builder::{control_run, intervene, management};
+use super::environment_view::{open_run_viewer, ViewRequest};
 use super::AgentSessionEngine;
 use crate::environment_host::Requester;
 
@@ -135,21 +136,20 @@ impl AgentSessionEngine {
             }
             // From the builder a live view is always public: seat views belong to the
             // human at that run's own table.
+            // An ended run opens its replay instead.
             "view" => {
-                let id = required(params, "id")?;
-                let path = manager.store().instance_path(id)?;
-                let host: Value = crate::environment_host::read(&path.join("host-session.json"))
-                    .context(
-                    "this run has no live host; replay an ended run with the viewer tool instead",
-                )?;
-                let response = self.link.request(json!({"type":"env","activeSessionId":host["activeSessionId"],"operation":"view","parameters":{"perspective":{"kind":"public"},"viewer":params["viewer"]}}), std::time::Duration::from_secs(180)).await?;
-                if !response.success {
-                    bail!(
-                        "live view unavailable: {}",
-                        response.error.unwrap_or_default()
-                    );
-                }
-                Ok(response.data.unwrap_or(Value::Null))
+                open_run_viewer(
+                    &manager,
+                    &self.link,
+                    ViewRequest {
+                        id: required(params, "id")?,
+                        viewer: params["viewer"].as_str(),
+                        perspective: Some(json!({"kind":"public"})),
+                        host_session: None,
+                        config: &self.config,
+                    },
+                )
+                .await
             }
             "watch" => {
                 let id = required(params, "id")?;
@@ -192,7 +192,20 @@ impl AgentSessionEngine {
                     "completed",
                     None,
                 );
-                Ok(json!({"session":session,"instance_id":id}))
+                // The spectator watches the public table, so the page is public too.
+                let viewer = auto_viewer(
+                    &manager,
+                    &self.link,
+                    ViewRequest {
+                        id,
+                        viewer: None,
+                        perspective: Some(json!({"kind":"public"})),
+                        host_session: session["activeSessionId"].as_str(),
+                        config: &self.config,
+                    },
+                )
+                .await;
+                Ok(json!({"session":session,"instance_id":id,"viewer":viewer}))
             }
             "enter" | "resume" => {
                 let parent = self
@@ -402,8 +415,20 @@ impl AgentSessionEngine {
                         None,
                     );
                 }
+                let viewer = auto_viewer(
+                    &manager,
+                    &self.link,
+                    ViewRequest {
+                        id: &id,
+                        viewer: None,
+                        perspective: None,
+                        host_session: response["activeSessionId"].as_str(),
+                        config: &self.config,
+                    },
+                )
+                .await;
                 Ok(
-                    json!({"session":response,"instance_id":id,"definition":definition,"warning":if local_python_warning { Some("Local Python seats share host-user filesystem access. Choose Docker for adversarial play.") } else { None }}),
+                    json!({"session":response,"instance_id":id,"definition":definition,"viewer":viewer,"warning":if local_python_warning { Some("Local Python seats share host-user filesystem access. Choose Docker for adversarial play.") } else { None }}),
                 )
             }
             "status" | "observe" | "act" => {
@@ -705,6 +730,19 @@ impl AgentSessionEngine {
         }
         super::environment_builder::register(&mut handlers, &self.config, &self.session_file);
         handlers
+    }
+}
+
+/// The viewer entering a run opens, or why there is none. A run without a
+/// compatible viewer is the normal case, so this is a result, not a failure.
+async fn auto_viewer(
+    manager: &EnvironmentManager,
+    link: &crate::supervisor_link::SupervisorLink,
+    request: ViewRequest<'_>,
+) -> Value {
+    match open_run_viewer(manager, link, request).await {
+        Ok(viewer) => viewer,
+        Err(error) => json!({"kind":"none","reason":format!("{error:#}")}),
     }
 }
 

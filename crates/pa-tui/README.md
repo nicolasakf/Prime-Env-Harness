@@ -12,7 +12,7 @@ types, choices, defaults, and schema-derived examples. Participant completion
 is limited to `/env` and never offers host files or builder commands.
 `/env view` opens the run's live viewer in the browser (the human's seat by default,
 `/env view public` for the public perspective); from the builder, `/env view <instance-id>`
-opens a running instance's public view. The TUI only opens the URL the daemon returns.
+opens a running instance's public view, or the replay of an ended one. Entering a run (`/env enter`, `/env resume`, `/env watch`) opens the viewer the daemon names in the readiness result's `viewer` field, and selecting an ended run in the runs panel fetches and opens its replay beside the transcript. The TUI only opens the URL the daemon returns.
 `/env list` lists saved environment IDs and names, sorted and deduplicated, in the builder;
 `/env catalog` retains the detailed catalog output.
 Bare `/env enter` lists saved environments to start; bare `/env resume` lists

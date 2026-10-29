@@ -487,8 +487,12 @@ impl EnvironmentHost {
         &self,
         checkpoint: &pa_types::environments::InstanceCheckpoint,
     ) -> Result<()> {
-        if checkpoint.receipts.len().saturating_sub(1) as u64
-            >= self.instance.roster().limits.max_operations
+        if self
+            .instance
+            .roster()
+            .limits
+            .max_operations
+            .is_some_and(|max| checkpoint.receipts.len().saturating_sub(1) as u64 >= max)
         {
             anyhow::bail!("operation limit reached");
         }

@@ -121,11 +121,11 @@ mutation; a stall message points to the seat interventions above.
 
 | Run limit | Default |
 | --- | --- |
-| `max_operations` | 500 mutations after initialization |
-| `max_wakes_per_seat` | 100 for each agent |
-| `max_wall_clock_seconds` | 7200 elapsed seconds from start, pauses included |
-| `seat_turn_timeout_seconds` | 120 seconds to act while `waiting_for` lists the seat, restarting after each action; a turn past it without acting is aborted and retried with thinking off. Must be positive; a large value effectively disables it |
-| `max_output_tokens` | 8192 per model request, thinking included; `null` leaves the provider default. A turn that hits it without acting is retried with thinking off |
+| `max_operations` | no limit; a number caps mutations after initialization |
+| `max_wakes_per_seat` | no limit; a number caps wakes for each agent |
+| `max_wall_clock_seconds` | no limit; a number caps elapsed seconds from start, pauses included |
+| `seat_turn_timeout_seconds` | 300 seconds to act while `waiting_for` lists the seat, restarting after each action; a turn past it without acting is aborted and retried with thinking off. Must be positive; a large value effectively disables it |
+| `max_output_tokens` | no limit (provider default); a number caps each model request, thinking included. A turn that hits it without acting is retried with thinking off |
 | `idle_turn_retries` | 2 re-prompts for an awaited seat whose turn ended without progress; shared with deadline retries; 0 disables |
 | `stall_turns` | 0 selects `2 * agent_count + 2` |
 
@@ -133,9 +133,11 @@ Limits go in the roster's `limits` object at `/env enter` or `start_instance`
 and are saved with the instance. Omitted fields take the defaults above. They are
 run settings, not definition or policy fields, so the same definition can run
 with short limits for a probe and long ones for a full match. A long run can
-exceed the defaults, so estimate its operations, wakes, and duration and
-propose limits before starting it. Each seat's prompt states its deadline and
-token cap.
+be expensive when most caps are off, so estimate its operations, wakes, and
+duration and propose limits before starting it. Always tell the user which limits
+will apply and ask whether to change any before you start a run, and confirm what
+is in effect once it has started (entering prints them). Each seat's prompt states
+its deadline, and its token cap when one is set.
 
 A seat that already acted is not retried when the deadline passes; its leftover
 turn is cut and counted as a post-action abort. The retry budget resets when the

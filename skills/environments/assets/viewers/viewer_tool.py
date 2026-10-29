@@ -9,9 +9,10 @@ root (default ~/.prime-env-harness/environments):
   viewers/<definition-id>/<viewer-id>/          reusable viewer source, no run data
       viewer.json   id, title, definition_id, compatible_versions, revision, content_hash, shell, ...
       index.html    entry page; local scripts, stylesheets and images beside it
-  instances/<instance-id>/viewers/<viewer-id>/  one run's export
+  replays/<definition-id>/<instance-id>/        one run's export
       index.html    self-contained replay page: viewer, run data, playback shell
       provenance.json
+      _development/ unsaved-viewer builds of the same run (--source without --out)
 
 Commands print JSON. Exit status is non-zero when the request is refused.
 """
@@ -344,6 +345,11 @@ def build_page(source: Path, data: dict) -> str:
 
 # --- Commands -------------------------------------------------------------------------------------
 
+def replay_dir(root: Path, definition: str, instance: str) -> Path:
+    """Where a run's exports live: every game's replays share one folder, grouped by definition."""
+    return root / "replays" / definition / instance
+
+
 def viewers_for(root: Path, definition: str) -> list[dict]:
     base = root / "viewers" / definition
     return [read_json(meta) for meta in sorted(base.glob("*/viewer.json"))] if base.exists() else []
@@ -353,7 +359,8 @@ def cmd_find(root: Path, args) -> dict:
     path, info = instance_paths(root, args.instance)
     state = run_state(path)
     exports = []
-    for provenance in sorted((path / "viewers").glob("*/provenance.json")):
+    replays = replay_dir(root, info["definition_id"], args.instance)
+    for provenance in sorted(replays.glob("provenance.json")) + sorted(replays.glob("_development/provenance.json")):
         record = read_json(provenance)
         saved = root / "viewers" / info["definition_id"] / record["viewer_id"] / "viewer.json"
         now = read_json(saved) if saved.exists() else None
@@ -426,7 +433,7 @@ def cmd_export(root: Path, args) -> dict:
             raise Refused("viewer rejected: " + "; ".join(problems))
         meta = {"id": "_development", "title": "Development build", "revision": None,
                 "content_hash": content_hash_of(source), "shell": not args.no_shell}
-        dest = Path(args.out).expanduser().parent if args.out else path / "viewers" / "_development"
+        dest = Path(args.out).expanduser().parent if args.out else replay_dir(root, info["definition_id"], args.instance) / "_development"
     else:
         candidates = viewers_for(root, info["definition_id"])
         if args.viewer:
@@ -445,9 +452,9 @@ def cmd_export(root: Path, args) -> dict:
             raise Refused(f"several viewers match ({[v['id'] for v in compatible]}); pass --viewer")
         meta = dict(compatible[0], trial=trial)
         source = root / "viewers" / info["definition_id"] / meta["id"]
-        dest = path / "viewers" / meta["id"]
+        dest = replay_dir(root, info["definition_id"], args.instance)
         if (dest / "index.html").exists() and not args.replace:
-            raise Refused(f"{dest} already exists; pass --replace to regenerate it")
+            raise Refused(f"{dest} already holds an export; pass --replace to regenerate it")
     page = build_page(source, run_data(root, path, info, meta))
     target = Path(args.out).expanduser() if args.source and args.out else dest / "index.html"
     target.parent.mkdir(parents=True, exist_ok=True)

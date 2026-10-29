@@ -98,6 +98,10 @@ pub(crate) struct SessionCore {
     /// drain when the session goes idle, one per turn).
     pub(crate) steering_mode: String,
     pub(crate) follow_up_mode: String,
+    /// The agent-message delivery mode (`agentMessageMode` setting):
+    /// `"all"` (default) co-delivers every agent message already queued
+    /// in a lane as ONE turn; `"one-at-a-time"` runs one turn per message.
+    pub(crate) agent_message_mode: String,
     /// The one-shot forced steering batch (TS `_forcedAllSteeringActionIds`
     /// on the session, armed by `abortAndSendQueued`): while armed, armed
     /// steering items co-deliver as ONE batched turn at the next boundary
@@ -185,6 +189,7 @@ impl SessionCore {
             active_service_tier: None,
             steering_mode: "all".to_string(),
             follow_up_mode: "one-at-a-time".to_string(),
+            agent_message_mode: "all".to_string(),
             forced_all_steering: false,
             scoped_models: Vec::new(),
             scope_origin: ScopeOrigin::Session,

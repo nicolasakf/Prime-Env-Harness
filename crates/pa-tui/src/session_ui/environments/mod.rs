@@ -426,9 +426,10 @@ impl SessionUi {
                     json!({"id":selector})
                 };
                 let result = self.environment_request("view", parameters).await?;
-                let url = result["url"].as_str().ok_or_else(|| anyhow::anyhow!("live view returned no address"))?;
-                crate::browser::open_in_browser(url);
-                self.note(&format!("Live view opened in your browser: {url}"), view);
+                if result["url"].as_str().is_none() {
+                    anyhow::bail!("the viewer returned no address");
+                }
+                self.open_environment_viewer(&result, view);
                 return Ok(());
             }
             "resume" => {
@@ -485,6 +486,22 @@ impl SessionUi {
             );
         }
         Ok(())
+    }
+
+    /// Open the page a viewer result names in the browser: the live page of a
+    /// run in play, or the replay of an ended run. A result without an address
+    /// (the run has no compatible viewer) opens nothing.
+    pub(crate) fn open_environment_viewer(&mut self, viewer: &Value, view: &mut AgentView) {
+        let Some(url) = viewer["url"].as_str() else {
+            return;
+        };
+        crate::browser::open_in_browser(url);
+        let page = if viewer["kind"] == "replay" {
+            "Replay"
+        } else {
+            "Live view"
+        };
+        self.note(&format!("{page} opened in your browser: {url}"), view);
     }
 }
 impl SessionUi {}

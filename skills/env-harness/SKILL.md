@@ -28,10 +28,40 @@ In participant mode builder commands are refused ("Leave the environment before
 using builder commands"). There is no builder kernel or builder tool in a
 participant session.
 
-Slash commands are typed by the **human**. You cannot run them. Tell the user the
-exact command to type; do the work you *can* do through the `environments` Python
-module (`create_environment`, `select_policy`, `validate_environment`,
-`save_environment`, `list_environments`).
+Slash commands are typed by the **human**; you cannot type them. Most builder
+commands have an equivalent in the `environments` Python module, so when the user
+asks for one, pastes it, or lists several to run in order, **do it through the
+module and report the result**. Do not answer "I can't run /env commands" and do
+not ask them to type what the module can do.
+
+| Command | Equivalent |
+|---|---|
+| `/env create <description>` | `environments.create_environment(description=...)` |
+| `/env policy <draft> <json>` | `environments.select_policy(draft=..., policy=<json>)` |
+| `/env validate <draft>` | `environments.validate_environment(draft=...)` |
+| `/env save <draft> <id>` | `environments.save_environment(draft=..., id=...)` |
+| `/env list`, `/env catalog` | `environments.list_environments()` |
+| `/env runs` | `environments.list_instances()` |
+| `/env pause\|resume\|stop <instance>` | `environments.pause_instance`, `resume_instance`, `stop_instance` |
+| `/env enter <id> <json>` for an agents-only roster | `environments.start_instance(definition=..., seats=..., policy=..., limits=..., config=...)` |
+
+Run a pasted sequence in order and stop at the first failure. A policy JSON in the
+user's command is their policy choice: pass it unchanged and do not widen it.
+Saving still requires a passing, unchanged validation, and `stop` is permanent, so
+ask first unless the command was the user's. Commands that open a picker or form
+(`/env enter` with a human seat, `/env act`, `/env inspect`, `/env watch`) and the
+table commands (`observe`, `status`, `msg`, `leave`) stay with the user; tell them
+the exact command for those. For a seat inside a run, see the privileged reads and
+`act_for_seat` in [run configuration](references/runs.md).
+
+If `import environments` fails (for example "No module named 'environments'"), the
+module's wrapper is just a thin call; use the host directly:
+
+```python
+await rlm.host_request("environments.validate_environment", {"draft": draft})
+```
+
+Methods use the same names and argument keys as the module functions.
 
 ## Command reference
 
@@ -117,7 +147,9 @@ play. Saved protocol 1 environments retain their human/agent IDs and transcript.
    flow and wakes, length and configuration, privacy, agent context, deadlines
    and token budgets, failure handling, and analysis. Give a recommendation for
    each, accept "decide later", and confirm a short design summary.
-3. Build the draft following the `environments` skill. Present purpose, actions,
+3. Build the draft following the `environments` skill, in the returned draft
+   path; never add the environment to the repository's `examples/` folder unless
+   the user explicitly asks. Present purpose, actions,
    dependencies, whether Python is requested, and your execution recommendation.
 4. **Ask the user which policy they want and wait.** Never pick or widen
    permissions yourself. Apply their answer with
@@ -135,9 +167,10 @@ play. Saved protocol 1 environments retain their human/agent IDs and transcript.
 7. The user enters, then uses `/env observe`, `/env act`, `/env status`. Agent
    seats are separate private sessions that the host wakes; you do not play.
    For agents-only runs you may provision with `environments.start_instance`
-   once the user authorized the token use. Before starting a long run, propose
-   run limits (deadline, token cap, retries, wall clock, operations, wakes) from
-   your estimate of its length.
+   once the user authorized the token use. Before starting any run, show the
+   user the run limits that will apply (deadline, token cap, retries, wall clock,
+   operations, wakes), propose values from your estimate of its length, and ask
+   whether to change any. After the run starts, tell them the limits in effect.
 8. `/env leave` ends participation; `/env resume` returns later.
 
 Draft paths are the strings the builder returns; use them verbatim in
@@ -263,8 +296,13 @@ cargo run -p pa-cli --bin prime-env-harness -- --data-dir <directory>
 ## Common mistakes
 
 - Running or validating generated code before the user selected a policy.
-- Typing `/env ...` as if you could execute it. Tell the user instead.
+- Telling the user you cannot run a builder `/env` command, or asking them to type
+  one, when the `environments` module covers it. Do it and report the result.
+- Typing `/env ...` into the chat as if it executed. Call the module function.
 - Saving a draft that changed after its last passing validation.
+- Adding a new environment to the repository's `examples/` folder without the
+  user explicitly asking; drafts and saved definitions belong under
+  `~/.prime-env-harness`.
 - Using `/env enter <id>` expecting it to start automatically; select an execution
   policy and submit the setup form first.
 - Using builder commands while inside an instance; `/env leave` first.

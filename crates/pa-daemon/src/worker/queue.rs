@@ -203,6 +203,19 @@ pub(crate) struct QueuedItem {
     pub(crate) forced_batch: bool,
 }
 
+impl QueuedItem {
+    /// Whether this is an agent-to-agent message delivery. Read off the
+    /// item's custom row rather than the `agent_message` marker, which a
+    /// journal restore does not carry: a restored message keeps batching.
+    fn is_agent_message(&self) -> bool {
+        self.custom_message
+            .as_ref()
+            .and_then(|row| row.get("customType"))
+            .and_then(Value::as_str)
+            == Some(pa_core::session_engine::agent_messaging::AGENT_MESSAGE_CUSTOM_TYPE)
+    }
+}
+
 /// Parse the wire `images` array of a prompt-family command (each entry
 /// `{type: "image", data, mimeType}`). Entries that do not carry payload
 /// data or a mime type are dropped, not failed: the text still admits.
@@ -409,6 +422,24 @@ pub(crate) fn gather_delivery_batch(core: &mut SessionCore, lane: Lane) -> Vec<Q
         && !items.iter().any(|item| item.forced_batch)
     {
         core.forced_all_steering = false;
+    }
+    // Agent messages are injected custom rows, so they never join the
+    // user-row batch below. Under `agentMessageMode: "all"` the agent
+    // messages already queued behind the front co-deliver instead, as
+    // custom rows of ONE turn in queue order (each keeps its own sender
+    // and content); "one-at-a-time" delivers each as its own turn.
+    if first.is_agent_message() {
+        let first_policy = first.policy;
+        let mut batch = vec![items.pop_front().expect("front checked")];
+        if core.agent_message_mode == "all" {
+            while let Some(next) = items.front() {
+                if !next.is_agent_message() || next.policy != first_policy {
+                    break;
+                }
+                batch.push(items.pop_front().expect("front checked"));
+            }
+        }
+        return batch;
     }
     // The front's own delivery class decides the turn's shape before any
     // gathering (TS: the direct prompt hand-off never queues, an injected

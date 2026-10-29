@@ -23,6 +23,11 @@ environment already has a viewer, also read [viewers](references/viewers.md): th
 viewer must be compatible with the new version and registered for it before the
 changelog.
 
+Keep new environments out of the repository's `examples/` folder. Draft them in
+the draft path `create_environment` returns and save them with `save_environment`,
+so they live under `~/.prime-env-harness`. Add or copy an environment into
+`examples/` only when the user explicitly asks for that.
+
 Read [the authoring contract](references/contract.md) when implementing the
 manifest, SDK methods, schemas, dependencies, and checks. Read
 [coordination patterns](references/coordination.md) when deciding who should act,
@@ -115,6 +120,11 @@ until every saved viewer lists it. Then add the changelog entry (see
 [maintenance](references/maintenance.md)).
 For programmatic provisioning, ask before starting runs because they consume
 model tokens. Existing user authorization suffices; do not ask repeatedly.
+The user should always know a run's limits. When you apply the execution policy
+for a run, show the run limits it would start with (the defaults unless you
+propose others) and ask whether to change any. Never pick limits silently. After
+`start_instance`, read the limits from `instance_status` and tell the user what
+is in effect.
 
 ```python
 run = await environments.start_instance(
@@ -147,12 +157,14 @@ and ends the seat sessions, unless they told you to. Its other debugging APIs ar
 privileged and read-only. Finish,
 stall, and recovery-required transitions, and a pause forced by a run limit, send
 the builder an informational message; a pause or stop someone requested does not. Seats cannot spawn, use builder APIs, or access builder tools.
-Default run limits are 500 operations, 100 wakes per seat, two hours of wall
-clock including pauses, 120 seconds to act while the environment waits on a seat
-(restarting after each action), 8192 output tokens per model request (thinking
-included), two re-prompts per awaited seat (`idle_turn_retries`), and 2·agents+2
-settled turns without environment progress. A turn that exceeds the time or
-token limit without acting is retried with thinking off. A turn that ends without
+Default run limits: no cap on operations, wakes per seat, wall clock, or output
+tokens per model request (thinking included); 300 seconds to act while the
+environment waits on a seat (restarting after each action); two re-prompts per
+awaited seat (`idle_turn_retries`); and 2·agents+2 settled turns without
+environment progress. Set `max_operations`, `max_wakes_per_seat`,
+`max_wall_clock_seconds`, or `max_output_tokens` to cap them. A turn that exceeds the time or
+token limit without acting is retried with thinking off, until the seat's first
+accepted action; later requests in that turn think again. A turn that ends without
 acting while the seat is still awaited is re-prompted. Both use the same retry
 budget; once it is spent, the run stalls or pauses. An environment that declares
 `missed_turns` decides what each miss means through `missed_turn` (see
@@ -203,5 +215,8 @@ Never include credentials in generated files or request engine workspace mounts.
 
 Each agent has a separate persistent Python namespace and receipts. Local Python
 still runs with host-user permissions and can read other seats’ files; use Docker
-for adversarial play. An uncertain Python cell requires reconciliation and an
-explicit reset of that seat’s namespace; it does not invalidate other seats.
+for adversarial play. A Python cell that is aborted after only computing or
+observing is cancelled automatically and the seat's variables return to what they
+were before it. A cell interrupted after it called `env.invoke` or an integration
+is uncertain: it requires reconciliation and an explicit reset of that seat’s
+namespace, and does not invalidate other seats.
