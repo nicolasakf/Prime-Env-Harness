@@ -120,6 +120,10 @@ def enumerate_units() -> list[dict]:
         for target in pkg["targets"]:
             kinds = target["kind"]
             tname = target["name"]
+            if target.get("required-features"):
+                # `cargo test --workspace` skips targets whose features are
+                # off; the docker-backed ones run in environments.yml.
+                continue
             if ("lib" in kinds or "proc-macro" in kinds) and target.get("test", True):
                 units.append({"package": name, "kind": "lib", "name": tname})
             if "bin" in kinds and target.get("test", True):
