@@ -1,4 +1,4 @@
-//! Fork identity and launch composition. Environment behavior lives below CLI.
+//! Application identity and launch composition. Environment behavior lives below CLI.
 use std::path::PathBuf;
 
 /// Launch the independently configured environment application.
@@ -64,7 +64,7 @@ fn configure(args: &[String]) -> anyhow::Result<Vec<String>> {
     std::env::set_var(super::config::ENV_DAEMON_SOCKET, root.join("daemon.sock"));
     std::env::set_var("PRIME_ENV_HARNESS_APP", "1");
     if args.first().is_some_and(|arg| arg == "update") {
-        anyhow::bail!("fork updates are built from nicolasakf/prime-env-harness; upstream installers are disabled");
+        anyhow::bail!("updates are manual builds from nicolasakf/prime-env-harness; no installer or release channel is available");
     }
     Ok(args)
 }

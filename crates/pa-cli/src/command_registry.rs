@@ -516,7 +516,7 @@ pub fn format_top_level_help() -> String {
                 "  {}  {}",
                 pad_end(spec.path[0], command_width),
                 if environment_app && spec.path == ["update"] {
-                    "Manual builds from nicolasakf/prime-env-harness; upstream installers disabled"
+                    "Manual builds from nicolasakf/prime-env-harness; no installer available"
                 } else {
                     spec.summary
                 }
@@ -545,7 +545,7 @@ pub fn format_top_level_help() -> String {
 pub fn format_command_help(path: &[&str]) -> Option<String> {
     let environment_app = std::env::var_os("PRIME_ENV_HARNESS_APP").is_some();
     if environment_app && path == ["update"] {
-        return Some("Prime Env Harness updates are manual Cargo builds from nicolasakf/prime-env-harness. Upstream installers are disabled.".into());
+        return Some("Prime Env Harness updates are manual Cargo builds from nicolasakf/prime-env-harness. No installer or release channel is available.".into());
     }
     let spec = get_command_spec(path)?;
     let children = get_child_command_specs(path);
