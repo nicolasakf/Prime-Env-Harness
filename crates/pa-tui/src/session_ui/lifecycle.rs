@@ -462,10 +462,16 @@ impl SessionUi {
                 .client
                 .supports_server_capability(pa_types::environments::ENVIRONMENT_CAPABILITY)
         {
-            let instances = self
+            // A session whose engine serves no environment requests rejects
+            // the listing; the attach carries on with an empty one.
+            match self
                 .environment_request("instances", serde_json::json!({}))
-                .await?;
-            serde_json::from_value(instances["instances"].clone())?
+                .await
+            {
+                Ok(instances) => serde_json::from_value(instances["instances"].clone())?,
+                Err(error) if crate::daemon_client::is_daemon_rejection(&error) => Vec::new(),
+                Err(error) => return Err(error),
+            }
         } else {
             Vec::new()
         };
@@ -474,10 +480,14 @@ impl SessionUi {
                 .client
                 .supports_server_capability(pa_types::environments::ENVIRONMENT_CAPABILITY)
         {
-            let catalog = self
+            match self
                 .environment_request("catalog", serde_json::json!({}))
-                .await?;
-            serde_json::from_value(catalog["definitions"].clone())?
+                .await
+            {
+                Ok(catalog) => serde_json::from_value(catalog["definitions"].clone())?,
+                Err(error) if crate::daemon_client::is_daemon_rejection(&error) => Vec::new(),
+                Err(error) => return Err(error),
+            }
         } else {
             Vec::new()
         };
