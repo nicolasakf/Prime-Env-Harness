@@ -60,10 +60,11 @@ trap 'rm -rf "$tmp"' EXIT
 echo "Downloading Prime Env Harness $version ($platform)..."
 curl -fsSL -o "$tmp/$name.tar.gz" "$base/$name.tar.gz" ||
   fail "no release asset $name.tar.gz for v$version"
-curl -fsSL -o "$tmp/$name.tar.gz.sha256" "$base/$name.tar.gz.sha256" ||
-  fail "no checksum for $name.tar.gz"
+curl -fsSL -o "$tmp/SHA256SUMS" "$base/SHA256SUMS" ||
+  fail "no SHA256SUMS for v$version"
 
-expected="$(cut -d' ' -f1 <"$tmp/$name.tar.gz.sha256")"
+expected="$(awk -v file="$name.tar.gz" '$2 == file { print $1 }' "$tmp/SHA256SUMS")"
+[ -n "$expected" ] || fail "no checksum for $name.tar.gz in SHA256SUMS"
 actual="$(sha256 "$tmp/$name.tar.gz")"
 [ "$expected" = "$actual" ] || fail "checksum mismatch for $name.tar.gz"
 
