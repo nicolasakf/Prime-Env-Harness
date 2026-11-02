@@ -1,11 +1,19 @@
-# Prime Env
+# Prime Env Harness
 
 **Build, run, and evaluate AI models in controlled environments, from the terminal.**
 
-Prime Env is a terminal harness where you describe an environment in plain
+Prime Env Harness is a terminal harness where you describe an environment in plain
 language (a card game, a negotiation, a document workflow, a simulation), have an
 AI builder write and validate it, and then play it yourself or let models play it
 against each other. Every run is recorded, resumable, and reportable.
+
+## What Prime Env Harness is for
+
+The main purpose of Prime Env Harness is to make it easy to **build environments, run
+evaluations, and create benchmarks**. It does not train models: it is not an RL
+trainer and does not fine-tune anything. Environments are plain programs with
+recorded runs, so they can be adapted and used alongside other tools to feed
+RL training, but wiring that up is on you.
 
 ## Why controlled environments
 
@@ -15,12 +23,12 @@ over-read. A controlled environment fixes the world around the model: the rules,
 the information each participant may see, the actions that are legal, and the
 outcome that counts. That makes results comparable across models and across runs,
 and it turns "seemed smart" into measurements such as profit and loss, win rate,
-decision latency, and cost. The same property makes environments the raw material
-for reinforcement learning and for evaluations that cannot be gamed by wording.
+decision latency, and cost. The same property makes environments useful as evaluations that cannot be
+gamed by wording, and as raw material for reinforcement learning done with other tools.
 They also keep risk contained: code runs under an explicit execution policy, and
 hidden information stays hidden.
 
-Prime Env is built to make that whole workflow cheap:
+Prime Env Harness is built to make that whole workflow cheap:
 
 - **Create** an environment by conversation. The builder asks about rules,
 participants, turn flow, privacy, deadlines and failure handling before it
@@ -36,17 +44,14 @@ mounts, secrets and integrations explicitly, or not at all.
 - **Evaluate** the outcome. Instances persist every action and receipt, survive
 crashes, and can be turned into notebook reports from reusable templates.
 
+## Origins and independence
 
-
-## Built on Prime Agent
-
-Prime Env is built on top of [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent)
-by [Prime Intellect](https://www.primeintellect.ai), an open-source Rust agent
-harness (MIT-licensed). From it we inherit the persistent Python REPL,
-recursive subagents, skills, MCP support, session daemon, and the terminal UI.
-Prime Env adds the environment contract and runtime, the participant and seat
-model, the `/env` interface, and the builder skills on top. Thank you to the
-Prime Intellect team for building the foundation.
+Prime Env Harness started from [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent)  
+by [Prime Intellect](https://www.primeintellect.ai), an open-source Rust agent  
+harness (MIT-licensed). From it we inherit the persistent Python REPL,  
+recursive subagents, skills, MCP support, session daemon, and the terminal UI.  
+Prime Env Harness adds the environment contract and runtime, the participant and seat  
+model, the `/env` interface, and the builder skills on top. We thank Prime Intellect and all other open-source projects that this project is built on.
 
 ## Quick start
 
@@ -61,7 +66,7 @@ cargo run -p pa-cli --bin prime-env-harness
 ```
 
 On first launch, run `/login` to choose a model provider, then `/tutorial`.
-Prime Env keeps its settings, credentials, sessions, and environments in
+Prime Env Harness keeps its settings, credentials, sessions, and environments in
 `~/.prime-env-harness`, separate from any other tool. Use
 `--data-dir <directory>` to place them elsewhere.
 
@@ -88,12 +93,10 @@ is a good introduction to what an environment is and why they matter.
 `[examples/](examples/README.md)` ships two complete environments you can try
 immediately:
 
-
 | Example                            | What it is                                                                                    |
 | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `texas-holdem`                     | No-limit Texas Hold'em for 2 to 9 seats, human or agent, with private cards and a game report |
 | `market-making-card-game` | A two-player market making game: trade a contract on the sum of card ranks with cumulative P&L, stateless agents, a game report, and a viewer |
-
 
 ```bash
 python3 scripts/install_examples.py
@@ -110,8 +113,6 @@ save them.
 - [Verification record](VERIFICATION.md): checks run and known platform gaps.
 - [Future ideas](FUTURE_IDEAS.md).
 
-
-
 ## Development
 
 ```bash
@@ -125,11 +126,9 @@ Repository rules, crate boundaries and review standards are in
 pressure.
 
 > [!WARNING]
-> Prime Env executes model-generated code with your user permissions. Local
+> Prime Env Harness executes model-generated code with your user permissions. Local
 > execution is not a sandbox. Use Docker, and grant only what an environment needs,
 > for anything you do not trust.
-
-
 
 ## License
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the bundled example environments into a Prime Env data directory.
+"""Install the bundled example environments into a Prime Env Harness data directory.
 
 Each directory under examples/ holds one environment's source, its suggested
 policy.json, and optionally a report template under game-report/ and a replay
@@ -27,7 +27,7 @@ def main() -> int:
         "--data-dir",
         type=Path,
         default=Path.home() / ".prime-env-harness",
-        help="Prime Env data directory (default: ~/.prime-env-harness)",
+        help="Prime Env Harness data directory (default: ~/.prime-env-harness)",
     )
     parser.add_argument("names", nargs="*", help="examples to install (default: all)")
     args = parser.parse_args()

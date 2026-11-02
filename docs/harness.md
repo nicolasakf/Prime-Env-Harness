@@ -1,4 +1,4 @@
-# Prime Env: current behavior
+# Prime Env Harness: current behavior
 
 This guide describes the implementation in this repository as of 2026-10-10,
 including environment-controlled attention, N-seat runs, and terminal forms.
@@ -25,9 +25,10 @@ outstanding merge-gate blockers.
 
 ## Launch and builder skill availability
 
-Prime Env is the `prime-env-harness` application, built on
-[Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent). The inherited
-`prime-agent` binary still builds from this workspace as the reference surface.
+Prime Env Harness is the `prime-env-harness` application. It started from
+[Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) and is now an
+independent project with no compatibility requirement. The inherited
+`prime-agent` binary still builds from this workspace but is not a supported product.
 The environment app has its own daemon, settings, credentials, history,
 environment store, and worker descriptors under `~/.prime-env-harness` by default.
 
@@ -1010,7 +1011,7 @@ opens nothing, and the readiness result's `viewer` field says why. The builder's
 
 The builder edits environments, never the harness: not harness code, prompt
 layers, skills, or the SDK and runner copies inside a draft. The rule is in the
-builder prompt, so it holds when Prime Env runs outside its own checkout and
+builder prompt, so it holds when Prime Env Harness runs outside its own checkout and
 `AGENTS.md` is out of reach. When the builder diagnoses a problem that would
 affect any environment, it records a recommendation instead of changing anything,
 and tells the user where.
@@ -1137,8 +1138,8 @@ Run heavy Cargo commands sequentially. Code iteration uses focused checks;
 final code validation runs `CARGO_BUILD_JOBS=2 make check` once, plus `make deny`
 for dependency changes. Documentation-only edits need diff/whitespace review.
 See [VERIFICATION.md](../VERIFICATION.md) for actual results; configured CI is
-not a completed run. Environment surfaces are exempt from Prime Agent TS
-parity; ordinary builder behavior retains its inherited contract.
+not a completed run. There is no Prime Agent or TypeScript parity requirement;
+inherited builder behavior changes only deliberately.
 
 ## Current boundaries and troubleshooting
 

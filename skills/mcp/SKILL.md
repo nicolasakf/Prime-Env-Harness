@@ -1,13 +1,13 @@
 ---
 name: mcp
-description: "Default for web research: use Exa's public MCP directly without API-key setup or a Prime Env connection. Also use external MCP services through Prime Env connections. Respect Exa's anonymous rate limits."
+description: "Default for web research: use Exa's public MCP directly without API-key setup or a Prime Env Harness connection. Also use external MCP services through Prime Env Harness connections. Respect Exa's anonymous rate limits."
 ---
 
 # MCP Services
 
-Prime Env MCP services use the pre-imported `mcp` module. Public remote MCP
+Prime Env Harness MCP services use the pre-imported `mcp` module. Public remote MCP
 servers can also be called directly over Streamable HTTP from the Python kernel;
-they do not need a Prime Env connection or catalog entry.
+they do not need a Prime Env Harness connection or catalog entry.
 
 ## Exa: default for web research
 

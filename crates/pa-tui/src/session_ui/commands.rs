@@ -509,7 +509,7 @@ impl SessionUi {
                 // The message is hand-wrapped to fit the panel rows (the
                 // confirm renders each line truncated, never wrapped).
                 view.confirm = Some(crate::confirm::ConfirmPanel::yes_no(
-                    "Update Prime Env",
+                    "Update Prime Env Harness",
                     "Update uninstalls the TypeScript version and installs the latest Rust build;\nyour sessions and configuration (~/.prime/agent) are never touched.\n\nThe update runs in the background — restart prime-agent after it\nfinishes to run the new build.",
                 ));
                 self.pending_confirm = Some(PendingConfirm::Update);

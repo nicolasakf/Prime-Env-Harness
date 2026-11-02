@@ -59,7 +59,7 @@ either changes.
 - Require `make check` once for final code validation before merge. It runs workspace
   fmt, clippy, tests, and a release build. Avoid duplicate runs of those gates unless
   later edits, failures, or unresolved concerns justify them. Keep dependency,
-  environment, and parity gates as required by AGENTS.md; report blocked gates.
+  environment gates, and user-visible-change evidence as required by AGENTS.md; report blocked gates.
 - Documentation-only changes need diff and whitespace review, without Rust builds
   or tests. Focused iteration checks do not replace merge gates.
 
@@ -71,17 +71,20 @@ either changes.
 
 ## Generated files
 
-- The model catalog is hand-maintained data: `crates/pa-ai/src/models_generated.rs` mirrors the TS `packages/ai/src/models.generated.ts` object literal (no generator, no generated JSON — edit it by hand exactly like its TS source), and the parity fixture `crates/pa-models/tests/fixtures/catalog.v1.json` refreshes with `scripts/generate-catalog-fixture.py` from the real `PrimeIntellect-ai/prime-agent-catalog` snapshot. Flag edits that would reintroduce a generator or hand-tweak the fixture rows.
+- The model catalog is hand-maintained data: `crates/pa-ai/src/models_generated.rs` is edited by hand (no generator, no generated JSON; it began as a copy of Prime Agent's catalog and may diverge), and the catalog fixture `crates/pa-models/tests/fixtures/catalog.v1.json` refreshes with `scripts/generate-catalog-fixture.py` from the real `PrimeIntellect-ai/prime-agent-catalog` snapshot. Flag edits that would reintroduce a generator or hand-tweak the fixture rows.
 - Bulk data files are exempt from the size guidance; the exemption's reason is that the file mirrors an upstream data source.
 # Project scope
 
-This is Prime Env, built on Prime Agent. Environment definitions, execution,
-participant tools/policy, the `environments_v1` daemon extension, and `/env` UI
-are deliberate additions exempt from Prime Agent TypeScript parity and builder
-surface restrictions. Preserve ordinary builder behavior and cycle-free crate
-dependencies. `pa-environments` depends on `pa-types`; core and daemon may use
+This is Prime Env Harness, an independent project that began from Prime Agent. There is no
+Prime Agent or TypeScript parity requirement: inherited builder behavior may change
+deliberately when the PR says so. Do not flag a change for diverging from Prime Agent;
+flag unintended behavior changes and cycle-free crate dependency violations.
+Environment definitions, execution, participant tools/policy, the `environments_v1`
+daemon extension, and `/env` UI are Prime Env Harness's own surfaces. Product purpose is
+building environments, running evaluations, and creating benchmarks; flag changes that
+add RL or fine-tuning functionality to the harness. `pa-environments` depends on `pa-types`; core and daemon may use
 it; TUI only uses shared wire types. Docker remains optional for all capabilities.
-Keep Prime Env state and updates independent of any Prime Agent installation.
+Keep Prime Env Harness state and updates independent of any Prime Agent installation.
 Environment vs harness: a change to one environment (definition, rules, actions,
 views, prompts, policy, data, tests) belongs only in that environment's files
 (`crates/pa-environments/fixtures/<env>/`, `examples/<env>/`, its dedicated test file, or its definition in

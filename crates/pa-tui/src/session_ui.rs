@@ -116,7 +116,7 @@ const EXIT_STATS_TIMEOUT_MS: u64 = 500;
 /// ban-risk warning a completed Anthropic subscription login shows once
 /// per session (the settings toggle `warnings.anthropicExtraUsage`
 /// gates it).
-const ANTHROPIC_SUBSCRIPTION_AUTH_WARNING: &str = "Anthropic subscription auth is active. Usage draws from your plan limits, but Prime Env identifies as Claude Code and this may violate Anthropic's terms — your account can be restricted or banned. An Anthropic API key avoids the risk. Manage usage at https://claude.ai/settings/usage.";
+const ANTHROPIC_SUBSCRIPTION_AUTH_WARNING: &str = "Anthropic subscription auth is active. Usage draws from your plan limits, but Prime Env Harness identifies as Claude Code and this may violate Anthropic's terms — your account can be restricted or banned. An Anthropic API key avoids the risk. Manage usage at https://claude.ai/settings/usage.";
 
 /// A landed `get_commands` refresh (TS `refreshCommandCatalogForCurrentSession`
 /// over `connectionCommands`): the session's `skill:` commands for the
@@ -825,7 +825,7 @@ impl SessionUi {
             .await
             .map_err(|_| {
                 anyhow!(
-                    "timed out after {}ms waiting for the Prime Env daemon response",
+                    "timed out after {}ms waiting for the Prime Env Harness daemon response",
                     timeout.as_millis()
                 )
             })?

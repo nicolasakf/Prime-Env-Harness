@@ -215,7 +215,7 @@ async fn an_attached_session_gets_the_idle_notice_only_after_person_sent_work() 
         notices_after(QueuePriority::Human, None).await,
         vec![json!({
             "type": "idle_notification",
-            "title": "Prime Env chat in poker",
+            "title": "Prime Env Harness chat in poker",
             "body": "Waiting for your review or reply",
         })],
     );

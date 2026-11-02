@@ -19,10 +19,10 @@ python3 scripts/install_examples.py            # every example
 python3 scripts/install_examples.py texas-holdem
 ```
 
-Add `--data-dir <directory>` if you launch Prime Env with a custom data
+Add `--data-dir <directory>` if you launch Prime Env Harness with a custom data
 directory. The script copies each example into a fresh builder draft, installs its
 report template and any viewer, and prints the commands to finish. It does not run or save
-anything. Then, in Prime Env:
+anything. Then, in Prime Env Harness:
 
 ```text
 /env policy <draft-path> {"backend":"local"}

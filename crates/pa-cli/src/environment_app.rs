@@ -7,7 +7,7 @@ pub fn environment_main(args: &[String]) -> i32 {
     match configure(args) {
         Ok(args) => super::main_with_runtime(&args, &super::PrintRuntime),
         Err(error) => {
-            eprintln!("Prime Environment Harness: {error}");
+            eprintln!("Prime Env Harness: {error}");
             1
         }
     }

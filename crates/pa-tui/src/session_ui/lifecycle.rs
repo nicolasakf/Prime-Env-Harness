@@ -300,7 +300,7 @@ impl SessionUi {
                 }),
                 _ => view.push_entry(crate::chat::ChatEntry::Status {
                     text: format!(
-                        "Reconnected to Prime Env (update {update_id}) — your session and queued work resumed."
+                        "Reconnected to Prime Env Harness (update {update_id}) — your session and queued work resumed."
                     ),
                     kind: crate::chat::StatusKind::Info,
                 }),

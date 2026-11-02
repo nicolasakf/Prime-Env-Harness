@@ -93,7 +93,7 @@ pub struct BuildSystemPromptOptions<'a> {
     pub rlm_parent_agent: Option<&'a str>,
     /// Enabled user-configured generic MCP servers.
     pub generic_mcp_servers: Vec<String>,
-    /// Whether this session runs in the Prime Environment Harness application,
+    /// Whether this session runs in the Prime Env Harness application,
     /// which states that application's purpose at the start of the tail.
     pub environment_harness: bool,
 }

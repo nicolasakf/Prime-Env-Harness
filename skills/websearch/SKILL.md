@@ -26,7 +26,7 @@ The existing `websearch` callable searches Google through Serper. Use it only
 when the user explicitly requests Serper. It uses `SERPER_API_KEY` if set;
 otherwise it reads the stored `serper` credential from `auth.json`. If the user requests Serper and has
 no key configured, explain that this optional provider requires a key from
-https://serper.dev, stored through `/mcp` → **Serper (web search)** in Prime Env.
+https://serper.dev, stored through `/mcp` → **Serper (web search)** in Prime Env Harness.
 
 Optional environment overrides for this provider:
 

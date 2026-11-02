@@ -369,7 +369,11 @@ impl AutocompleteProvider for EnvironmentAutocompleteProvider {
             SlashKind::Name => {
                 let commands = [
                     ("/env ", "/env", "Environment commands and actions"),
-                    ("/tutorial", "/tutorial", "Getting started with Prime Env"),
+                    (
+                        "/tutorial",
+                        "/tutorial",
+                        "Getting started with Prime Env Harness",
+                    ),
                     ("/id", "/id", "Copy the current session id to clipboard"),
                 ];
                 let items: Vec<CompletionItem> = commands

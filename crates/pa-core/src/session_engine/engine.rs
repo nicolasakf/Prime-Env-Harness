@@ -615,7 +615,7 @@ async fn create_session_inner(
                 rlm_depth: config.rlm_depth,
                 generic_mcp_servers,
                 prompt_guidelines: Some(prompt_guidelines),
-                // Set by the Prime Environment Harness application at startup
+                // Set by the Prime Env Harness application at startup
                 // and inherited by its daemon and workers.
                 environment_harness: std::env::var_os("PRIME_ENV_HARNESS_APP").is_some(),
                 ..Default::default()

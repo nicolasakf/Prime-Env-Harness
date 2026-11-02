@@ -6,7 +6,7 @@ two layers. Decide which before you change anything.
 | Layer | What it is | You may change it? |
 |---|---|---|
 | Environment | One definition's rules, actions, observations, `agent_view`, `instructions`, setup schema, checks, dependencies, and its own helper modules | Yes. This is your job. |
-| Harness | The Prime Env program and everything that serves every environment: the host, broker and runner, the SDK and runner copies inside a draft (`sdk.py`, `sdk.ts`, `runner.py`), prompt layers, skills, docs, the `environments` Python module, the TUI | **Never.** |
+| Harness | The Prime Env Harness program and everything that serves every environment: the host, broker and runner, the SDK and runner copies inside a draft (`sdk.py`, `sdk.ts`, `runner.py`), prompt layers, skills, docs, the `environments` Python module, the TUI | **Never.** |
 
 You build, validate, run, supervise, and edit environments. You do not edit the
 harness, whether it is an installed binary, a source checkout you happen to be

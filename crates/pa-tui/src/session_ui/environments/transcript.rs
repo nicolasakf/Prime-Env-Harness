@@ -44,7 +44,9 @@ impl SessionUi {
                     _ => Err("the daemon returned no transcript".to_owned()),
                 },
                 Ok(Err(error)) => Err(format!("{error:#}")),
-                Err(_) => Err("timed out waiting for the Prime Env daemon response".to_owned()),
+                Err(_) => {
+                    Err("timed out waiting for the Prime Env Harness daemon response".to_owned())
+                }
             };
             let _ = updates.send(EnvironmentRunsUpdate::Transcript { id, messages });
         });

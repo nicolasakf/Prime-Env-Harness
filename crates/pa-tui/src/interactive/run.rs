@@ -395,7 +395,7 @@ async fn run_interactive_surface(
                 }
             }
             // A response/handshake timeout (the daemon alive but slow at
-            // load: "Timed out after Nms waiting for the Prime Env daemon
+            // load: "Timed out after Nms waiting for the Prime Env Harness daemon
             // response") is a hiccup, not a protocol failure: the same
             // session-picker fallback, never a fatal exit that loses the
             // user's pane (operator directive 2026-09-24 — the attach
@@ -1569,7 +1569,7 @@ async fn run_interactive_surface(
                             // the reconnect timeout — the saved-transcript
                             // close (the session file survives on disk).
                             session.note(
-                                "The Prime Env daemon shut down while this window was attached. The session transcript remains saved; restart Prime Env and reopen it from Agents View.",
+                                "The Prime Env Harness daemon shut down while this window was attached. The session transcript remains saved; restart Prime Env Harness and reopen it from Agents View.",
                                 &mut view,
                             );
                             session.exit_reason = "daemon_closed";
@@ -1655,7 +1655,7 @@ async fn run_interactive_surface(
                             // the reconnect timeout — the saved-transcript
                             // close (the session file survives on disk).
                             session.note(
-                                "The Prime Env daemon shut down while this window was attached. The session transcript remains saved; restart Prime Env and reopen it from Agents View.",
+                                "The Prime Env Harness daemon shut down while this window was attached. The session transcript remains saved; restart Prime Env Harness and reopen it from Agents View.",
                                 &mut view,
                             );
                             session.exit_reason = "daemon_closed";

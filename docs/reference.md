@@ -1,6 +1,10 @@
-# Prime Env reference
+# Prime Env Harness reference
 
-Prime Env is built on [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent).
+Prime Env Harness started from [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent)
+and is now an independent project; compatibility with Prime Agent is not a goal.
+Its purpose is building environments, running evaluations, and creating benchmarks. It
+does not implement RL or fine-tuning, though environments and run records can be adapted
+for use with external training tools.
 The [harness guide](harness.md) documents the implemented workflow, session roles,
 participant combinations, attention, forms, policy, persistence, and diagnostics.
 Authoring references and a complete relay example ship inside the environment
@@ -10,8 +14,8 @@ skills, independently of the launch directory. Ready-made environments are in
 Run `cargo run -p pa-cli --bin prime-env-harness -- --data-dir <directory>`.
 The default directory is `~/.prime-env-harness`. Its daemon, worker descriptors,
 locks, credentials, settings, sessions, definitions, and instances are independent
-of any Prime Agent installation. The `prime-agent` binary still builds from this
-workspace as the inherited reference surface.
+of any Prime Agent installation. The inherited `prime-agent` binary still builds from this
+workspace but is not a supported product.
 
 ## Local development
 
@@ -29,7 +33,7 @@ Run heavy Cargo commands sequentially. Once a code change is ready, run
 `make check` for the full workspace gates, including the optimized release build.
 Avoid repeating its individual gates separately. Use
 `CARGO_BUILD_JOBS=2 make check` to limit build parallelism. Dependency changes also
-require `make deny`; environment and parity verification requirements remain in
+require `make deny`; environment verification requirements remain in
 [AGENTS.md](AGENTS.md). Documentation-only edits need diff and whitespace review.
 
 Updates: source repository `nicolasakf/prime-env-harness`, manual Cargo builds.
@@ -213,5 +217,5 @@ pa-types among workspace crates. pa-core's exported SeatPort uses shared wire
 types and no pa-environments dependency; pa-daemon owns supervision, wake
 admission and provisioning. pa-tui renders public wire events only. The new
 public SeatPort, roster and table APIs are architectural surfaces. Environment
-surfaces are exempt from Prime Agent TypeScript parity; the inherited builder tools and
-protocol identifiers remain unchanged.
+surfaces have no Prime Agent or TypeScript parity requirement; the inherited builder tools and
+protocol identifiers change only deliberately.

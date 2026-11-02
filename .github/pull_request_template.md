@@ -4,13 +4,13 @@
 
 ## What changed
 
-## Parity-diff evidence (merge gate for user-visible surfaces)
+## User-visible change evidence
 
-<!-- Per the AGENTS.md merge gates: features are not done until diffed against the TS binary. -->
-- [ ] Rendered output: frame-diff vs the TS binary for every touched surface
-- [ ] Interactive behavior: same input, identical handling (keys/mouse/timing) vs TS
-- [ ] Wire parity: byte-compare TS daemon traffic for protocol changes
-- [ ] User-visible invariants: every user action produces the same visible reaction TS shows; nothing extra TS does not show
+<!-- Per the AGENTS.md merge gates: show user-visible changes working end to end. No Prime Agent / TS comparison is required. -->
+- [ ] Rendered output: screenshot or frame capture for every touched surface
+- [ ] Interactive behavior: tmux or scripted session showing the changed input handling
+- [ ] Protocol changes: a test or captured trace
+- [ ] Inherited behavior changed on purpose: said so above
 
 <!-- If a checked box does not apply (pure refactor, docs, internal crate), say why. -->
 

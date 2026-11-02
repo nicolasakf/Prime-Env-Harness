@@ -1,6 +1,6 @@
 # Public Streamable HTTP MCP
 
-Use this path for a public remote MCP endpoint that does not require a Prime Env
+Use this path for a public remote MCP endpoint that does not require a Prime Env Harness
 connection. Exa's public endpoint is the main example:
 
 ```python
@@ -114,8 +114,8 @@ exa_pages = await public_mcp_request(
 )
 ```
 
-Do not interpret an empty Prime Env MCP connection list as an Exa failure. The
-native `mcp` module lists Prime Env-managed connections; Exa is called directly.
+Do not interpret an empty Prime Env Harness MCP connection list as an Exa failure. The
+native `mcp` module lists Prime Env Harness-managed connections; Exa is called directly.
 
 ## Exa authentication and limits
 

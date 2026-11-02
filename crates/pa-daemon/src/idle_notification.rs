@@ -28,7 +28,7 @@ pub(crate) fn idle_notification_title(chat_name: Option<&str>, cwd: &str) -> Str
                 || cwd.to_string(),
                 |name| name.to_string_lossy().into_owned(),
             );
-            format!("Prime Env chat in {folder}")
+            format!("Prime Env Harness chat in {folder}")
         },
         str::to_string,
     )

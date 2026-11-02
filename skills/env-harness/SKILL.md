@@ -1,6 +1,6 @@
 ---
 name: env-harness
-description: Operate the Prime Environment Harness and its /env commands - create, policy, validate, save, enter, act, observe, status, leave, resume, recover, list, catalog, inspect. Use when the user asks how the harness works, which /env command to run, how to build, run, resume or recover an environment, what execution policies (local, docker, python, networking, mounts, secrets, integrations) mean, or when you must guide them through the build-then-enter workflow.
+description: Operate the Prime Env Harness and its /env commands - create, policy, validate, save, enter, act, observe, status, leave, resume, recover, list, catalog, inspect. Use when the user asks how the harness works, which /env command to run, how to build, run, resume or recover an environment, what execution policies (local, docker, python, networking, mounts, secrets, integrations) mean, or when you must guide them through the build-then-enter workflow.
 ---
 
 # Environment Harness

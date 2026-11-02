@@ -1,7 +1,7 @@
 # AGENTS.md
 
-Development rules for Prime Env (Rust) on nicolasakf/prime-env-harness, branch `main`.
-Prime Env is built on Prime Agent (PrimeIntellect-ai/prime-agent); code inherited from it keeps its upstream contracts.
+Development rules for Prime Env Harness (Rust) on nicolasakf/prime-env-harness, branch `main`.
+Prime Env Harness started from Prime Agent (PrimeIntellect-ai/prime-agent) and is now an independent project; see "Relationship to Prime Agent" below.
 Every contributor (human or agent) must read this before working on this repo.
 
 ## Environment vs harness (read before planning any change)
@@ -48,8 +48,22 @@ Rules:
 - PRs go to this repo with base `main`:
   `gh pr create --repo nicolasakf/prime-env-harness --base main`.
 - CI: `.github/workflows/continuous.yml` on `main` pushes and `release.yml` on version tags.
-- Parity ground truth for inherited Prime Agent surfaces is unchanged: the TS checkout at
-  ~/prime-agent (read-only).
+
+## Relationship to Prime Agent
+
+- Prime Env Harness is an independent project. It started from Prime Agent's Rust workspace
+  (revision `3358e0016bce7cf34a195af58bbd91a26e17d694`) and no longer tracks it.
+- We owe Prime Agent and Prime Intellect credit (README, LICENSE, citation) but not
+  compatibility: no TypeScript-parity gate, no obligation to keep upstream's contracts,
+  and no need to keep merges with upstream conflict-free.
+- The `upstream` git remote exists only so we can read Prime Agent's development and
+  pull in what we want, when we want, by cherry-pick or ad hoc merge. There is no sync
+  schedule. When you port an upstream change, adapt it to this repo's rules and name the
+  upstream commit in the commit message.
+- Inherited behavior is ours to change. Do it deliberately: describe the change in the PR,
+  and keep the inherited surface contract below accurate rather than treating it as frozen.
+- Do not edit or depend on a Prime Agent checkout or installation. Prime Env Harness state, updates,
+  and release channels are separate from Prime Agent's.
 
 ## Style and structure
 
@@ -96,9 +110,9 @@ Rules:
 - Do not add tests for statically defined values.
 - Do not add negative tests for logic that was removed.
 - Bug fixes need a regression test that fails without the fix.
-- Verifiers over self-assessment: tmux user-level tests, differential tests against the TS binary
-  on PATH, golden corpora replayed against real captured data. No lane merges without its verifier
-  passing, rerun by the reviewer where feasible.
+- Verifiers over self-assessment: tmux user-level tests, golden corpora replayed against real
+  captured data, and environment fixtures. No lane merges without its verifier passing, rerun
+  by the reviewer where feasible.
 - Tests must wait for observable readiness, not fixed sleeps or retry-to-green loops. If a
   test must be disabled, give a reason at the test. Use isolated ports and temporary paths, and
   restore shared state. Run focused tests when changing their behavior.
@@ -127,7 +141,7 @@ Rules:
   merge. It includes workspace formatting, clippy, tests, and a release build; do
   not separately repeat those same gates. Rerun checks only when later edits,
   failures, or unresolved concerns require them. Run `make deny` when dependencies
-  change, and retain the required environment and parity verifiers.
+  change, and retain the required environment verifiers.
 - Documentation-only changes need a diff and whitespace review, without Rust
   compilation or tests. Report failed or unavailable gates accurately; focused
   checks do not replace the merge requirements.
@@ -139,24 +153,18 @@ Rules:
   the same gates; CI runs on the org's billing (`.github/workflows/continuous.yml` on `main`
   pushes; `release.yml` on version tags). The PR-only codebase-health check reports growth
   past 2,000 lines as review guidance; it never blocks a merge.
-- **Parity-diff evidence is a merge gate** (the port's definition, not optional polish): every PR
-  that touches a user-visible surface must include a "parity-diff evidence" section in its
-  description showing the TS-binary comparison for what it changed: (1) rendered output —
-  frame-diff vs the TS binary;
-  (2) interactive behavior — the same input handled identically (keys, mouse, timing); 
-  (3) wire parity — byte-compare the TS daemon's traffic for protocol changes; (4) user-visible
-  invariants — every user action produces the same visible reaction as TS (`/compact` shows
-  started+completed; `/model` shows the selector; a refinement shows its decoration). A feature
-  that "works" but was never diffed against the TS binary does not pass review. If TS shows it,
-  Rust shows it identically; if Rust shows something TS does not, that is also a parity bug.
+- **User-visible changes need evidence.** Every PR that changes what a user sees or does must
+  say so in its description and show it working: a screenshot or frame capture for rendered
+  output, a tmux or scripted session for interactive behavior, and a test or captured trace
+  for protocol changes. A feature that "works" but was never run end to end does not pass
+  review. There is no comparison against the TypeScript Prime Agent binary.
 - PRs must state ownership compliance (crate README scope/non-goals/public API, dependency
   direction) and classify the change: internals, new `pub` surface, or a new
   dependency/cross-crate re-export. The latter two are architectural changes — an innocent-looking
   `pub use` is a very simple way to break encapsulation.
 - The compiled fallback model catalog `crates/pa-ai/src/models_generated.rs` is
-  hand-maintained Rust mirroring the TS `packages/ai/src/models.generated.ts` object
-  literal — edit it by hand, exactly like its TS source (there is no generator). The
-  parity fixture `crates/pa-models/tests/fixtures/catalog.v1.json` refreshes with
+  hand-maintained Rust; edit it by hand (there is no generator). It began as a copy of
+  Prime Agent's catalog and is ours to diverge. The catalog fixture `crates/pa-models/tests/fixtures/catalog.v1.json` refreshes with
   `scripts/generate-catalog-fixture.py`. Bulk data files are exempt from the size guidance.
 
 ## Adoption telemetry
@@ -168,25 +176,28 @@ seam emits it from day one. Telemetry properties never carry prompt, session, or
 
 ## Branding
 
-The product is Prime Env, built on Prime Agent. The README, license, and citation acknowledge
+The product is Prime Env Harness, an independent project that began from Prime Agent. The README, license, and citation acknowledge
 Prime Agent and Prime Intellect on purpose; keep those. Elsewhere, scrub "pi"/"pi-mono"/"pi-ai"/
 "Prime Intellect"-style naming from all user-visible surfaces (docs, READMEs,
 CLI help text, error messages, splash/onboarding strings, keybinding hints, TUI
 labels, and code comments that quote user-facing strings); brand everything
-Prime Env. Audit with a repo-wide grep and classify every hit (user-visible
+Prime Env Harness. Audit with a repo-wide grep and classify every hit (user-visible
 vs wire-internal vs comment) before scrubbing, and list the preserved wire
 identifiers in the PR body so the reviewer can verify none were wrongly scrubbed.
 
-EXPLICIT EXCEPTION: wire-protocol identifiers that must stay byte-compatible with the TS product (e.g. the PI_PACKAGE_DIR env var, settings keys, provider IDs like prime-inference, harness _meta namespaces like ai.primeintellect.prime-agent, lockfile names) stay until/unless the TS side renames them — PARITY BEATS BRANDING ON THE WIRE.
+EXCEPTION: inherited protocol identifiers (e.g. the PI_PACKAGE_DIR env var, settings keys, provider IDs like prime-inference, harness _meta namespaces like ai.primeintellect.prime-agent, lockfile names) stay as they are until we deliberately rename them. Renaming one is its own logical change that updates every reader and writer and any stored data; do not scrub them incidentally.
 
 
 
-## Surface contract (must not change)
+## Inherited surface contract
+
+This is the behavior inherited from Prime Agent that Prime Env Harness currently ships. It is not
+frozen by upstream; change it deliberately, say so in the PR, and update this list.
 
 - Tools exposed to the model: `bash`, `edit`, `ipython` (internal helpers: `rename`, `stdout`).
 - RLM kernel API in the persistent Python REPL: `rlm.spawn/find_models/collect/list_subagents/delete_subagent/create_session/progress_note`, `rlm.harness` CRUD, `agent_message.send`, `agent_observe`, `compact`, `goal`, `refine`, `attach_image`, skills (markdown + Python) per the skill contract in the base system prompt.
 - System prompt structure: layered — cache-stable static layer files (core harness description with the full API surface, mandatory usage rules, opinionated guidelines, per-model map) followed by one dynamic tail (packages, project context, skills inventory, MCP servers, environment, session role); the harness digest stays a separate `[harness-digest]` user message. `prime-agent prompt` dumps the assembled prompt with its layer breakdown.
-- CLI shape: `prime-agent` with the same commands/flags as the TS product; headless modes (RPC/daemon/session-worker) with identical behavior.
+- CLI shape: the inherited `prime-agent` binary's commands and flags, and headless modes (RPC/daemon/session-worker); `prime-env-harness` is the product binary.
 
 ## Crates
 
@@ -224,13 +235,16 @@ Layering rules:
 - Cursor Bugbot's PR review rules (`.cursor/BUGBOT.md`) mirror the standards in this file - update both whenever either changes.
 # Project scope
 
-This repository is `nicolasakf/prime-env-harness`, built on Prime Agent's Rust workspace
-(starting revision `3358e0016bce7cf34a195af58bbd91a26e17d694`). The environment application uses
+This repository is `nicolasakf/prime-env-harness`, an independent project that began from Prime Agent's
+Rust workspace (starting revision `3358e0016bce7cf34a195af58bbd91a26e17d694`). The environment application uses
 `prime-env-harness` and `~/.prime-env-harness`; never edit sibling checkouts.
-The environment contract, participant profile, daemon extension, and `/env`
-UI are intentionally new surfaces and are exempt from upstream TypeScript
-parity and the immutable builder-tool contract below. Preserve upstream builder
-behavior. Docker is optional, including for participant Python.
+Prime Agent compatibility is not a goal: there is no TypeScript-parity requirement, and the inherited
+builder behavior may change deliberately (see "Relationship to Prime Agent"). The environment contract,
+participant profile, daemon extension, and `/env` UI are Prime Env Harness's own surfaces. Docker is optional,
+including for participant Python.
+Product purpose: building environments, running evaluations, and creating benchmarks. Training
+(RL, fine-tuning) is out of scope; environments and run records may be adapted for use with
+external training tools, but the harness does not implement training.
 `pa-environments` owns execution and persistence and depends only on `pa-types`.
 `pa-core` and `pa-daemon` may depend on it; `pa-tui` still depends only on shared
 wire types. Direct dependencies added by this project use exact versions. Follow the Development workflow above: focused environment tests during iteration,

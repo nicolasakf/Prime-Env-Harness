@@ -1,4 +1,4 @@
-Welcome to Prime Env
+Welcome to Prime Env Harness
 
 Build an environment, then enter it to interact alongside an AI agent.
 

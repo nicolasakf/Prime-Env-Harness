@@ -56,7 +56,7 @@ pub(crate) fn trace_question_config() -> OnboardingChoiceOptions {
 
 /// The onboarding team question's prompt (TS `showPrimeTeamSelector`'s
 /// onboarding arm mounts `OnboardingChoiceComponent` with this prompt).
-pub const TEAM_QUESTION_PROMPT: &str = "Which account should Prime Env use?";
+pub const TEAM_QUESTION_PROMPT: &str = "Which account should Prime Env Harness use?";
 /// The onboarding team question's first row (TS the `Personal account`
 /// option, index 0 — the personal answer).
 pub const PERSONAL_ACCOUNT_LABEL: &str = "Personal account";

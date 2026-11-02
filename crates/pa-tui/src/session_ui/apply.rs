@@ -379,7 +379,7 @@ impl SessionUi {
                             .join(", ");
                         view.push_entry(crate::chat::ChatEntry::Status {
                             text: format!(
-                                "Prime Env is updating — restarting the daemon (about {}s). {} will resume automatically.",
+                                "Prime Env Harness is updating — restarting the daemon (about {}s). {} will resume automatically.",
                                 update.est_seconds.max(1),
                                 if names.is_empty() { "Your session".to_string() } else { names }
                             ),

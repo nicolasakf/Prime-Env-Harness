@@ -1,4 +1,4 @@
-//! Terminal UI for Prime Env.
+//! Terminal UI for Prime Env Harness.
 //!
 //! Rust port of the TS reference TUI (packages/tui) plus the interactive agent view
 //! from `coding-agent/src/modes/interactive`. Components render styled lines;

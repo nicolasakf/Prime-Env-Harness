@@ -154,7 +154,7 @@ pub(super) fn arm_shutdown_recovery(
         return false;
     }
     session.note_as(
-        "the Prime Env daemon shut down; waiting for it to come back…",
+        "the Prime Env Harness daemon shut down; waiting for it to come back…",
         crate::chat::StatusKind::Warning,
         view,
     );

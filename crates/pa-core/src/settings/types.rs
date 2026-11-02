@@ -335,7 +335,7 @@ pub struct Settings {
     /// Delivery mode for queued agent-to-agent messages (a sub-agent's
     /// replies to its parent, peer sends): `all` hands every message
     /// already queued for the session to one turn, `one-at-a-time` runs
-    /// one turn per message. Prime Env setting, no TS counterpart.
+    /// one turn per message. Prime Env Harness setting, no TS counterpart.
     pub agent_message_mode: Option<QueueModeSetting>,
     pub theme: Option<String>,
     pub compaction: Option<CompactionSettings>,
