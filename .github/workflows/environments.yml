@@ -1,11 +1,21 @@
+# Checks that ci.yml does not cover: the Docker-backed environment runtime
+# (needs a Docker daemon, Node, and Python) and the dependency audit.
+# fmt, clippy, and the test suite run in ci.yml.
 name: Environment harness
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: environments-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  contract:
+  docker-integration:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@ce678459e9fc7500d337468f904b95f1b5c10b5e # pinned toolchain (see ci.yml)
@@ -20,10 +30,14 @@ jobs:
         env:
           OPENAI_API_KEY: environment-test-sentinel
           ANTHROPIC_API_KEY: environment-test-sentinel
-      - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: make check
-      - uses: taiki-e/install-action@v2
+  deny:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
         with:
-          tool: cargo-deny
-      - run: make deny
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check
+          arguments: --all-features --workspace
+          command-arguments: advisories licenses

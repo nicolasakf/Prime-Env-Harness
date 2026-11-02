@@ -47,7 +47,8 @@ Rules:
 - The repo is nicolasakf/prime-env-harness; development happens on the `main` branch.
 - PRs go to this repo with base `main`:
   `gh pr create --repo nicolasakf/prime-env-harness --base main`.
-- CI: `.github/workflows/continuous.yml` on `main` pushes and `release.yml` on version tags.
+- CI: `ci.yml` (fmt, clippy, sharded tests) and `environments.yml` (Docker integration, dependency
+  audit) on `main` pushes and PRs; `release.yml` on version tags.
 
 ## Relationship to Prime Agent
 
@@ -150,9 +151,8 @@ Rules:
 
 - `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
   `cargo test --workspace` must pass before every merge. Run `make check` — the local mirror of
-  the same gates; CI runs on the org's billing (`.github/workflows/continuous.yml` on `main`
-  pushes; `release.yml` on version tags). The PR-only codebase-health check reports growth
-  past 2,000 lines as review guidance; it never blocks a merge.
+  the same gates; CI runs them in `ci.yml` on `main` pushes and PRs (`release.yml` runs on
+  version tags). File size past 2,000 lines is review guidance only and never blocks a merge.
 - **User-visible changes need evidence.** Every PR that changes what a user sees or does must
   say so in its description and show it working: a screenshot or frame capture for rendered
   output, a tmux or scripted session for interactive behavior, and a test or captured trace

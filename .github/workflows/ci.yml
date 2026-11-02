@@ -58,8 +58,8 @@
 # naming the failing binaries; the gate is green only when all shards are.
 #
 # Strictly read-only: contents: read, persist-credentials: false, no secrets.
-# Windows coverage runs via the on-demand windows-runtime-triage.yml battery
-# (any ref); there is no windows or deny job in this workflow.
+# There is no windows or deny job in this workflow; the dependency audit
+# runs in environments.yml.
 #
 name: ci
 

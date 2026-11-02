@@ -190,9 +190,8 @@ its master before reaping and passes on this machine.
 
 Full workspace test/clippy success is therefore **not verified** locally.
 `.github/workflows/environments.yml` provisions Linux, Node, Python, and Docker,
-runs Docker integration tests unconditionally, and runs workspace formatting,
-clippy, tests through `make check`, and dependency checks. That workflow has not
-been published or run on GitHub.
+runs the Docker integration tests, and runs the dependency audit. Formatting,
+clippy, and the workspace tests run in `.github/workflows/ci.yml`.
 
 Local Python and Node have host-user permissions. Broker allowlists restrict host
 integration dispatch, not arbitrary local filesystem or network access. Docker

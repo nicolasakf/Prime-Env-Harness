@@ -25,10 +25,10 @@ windows-cross:
 # Lints the live workflow files (.github/workflows/).
 actionlint:
 	@command -v actionlint >/dev/null 2>&1 || { echo "actionlint not installed (see rhysd/actionlint releases)"; exit 1; }
-	actionlint .github/workflows/ci.yml .github/workflows/continuous.yml \
-		.github/workflows/release.yml .github/workflows/windows-runtime-triage.yml
+	actionlint .github/workflows/ci.yml .github/workflows/environments.yml \
+		.github/workflows/release.yml
 
-# GLIBC baseline gate (the continuous.yml/release.yml build-gnu jobs): a
+# GLIBC baseline gate (the release.yml build-linux job): a
 # GNU/Linux artifact must not require symbols above GLIBC_2.35, the Ubuntu
 # 22.04 release baseline. No-op on non-GNU hosts; the authoritative gate runs
 # in CI inside the ubuntu:22.04 build container. POSIX sh throughout: make
@@ -109,24 +109,6 @@ release-dry-run:
 	python3 scripts/release/verify_release.py \
 		--dist-dir target/release/dist --version "$(VERSION)" --target "$(TARGET)"
 
-# Local mirror of the continuous.yml build job:
-# same release build, but commit-stamped: the tarball carries a package.json
-# version manifest and the binary must report "<version>-continuous.<sha>".
-GIT_SHA := $(shell git rev-parse HEAD)
-
-continuous-dry-run:
-	cargo build --release --locked --workspace
-	$(RELEASE_SPLIT)
-	$(MAKE) glibc-gate
-	python3 scripts/release/bundle_catalog.py generate --$(CATALOG_ASSETS_MODE) --out $(CATALOG_ASSETS_DIR)
-	python3 scripts/release/assemble_artifacts.py \
-		--repo-root . --version "$(VERSION)" --target "$(TARGET)" $(RUNTIME_FLAG) \
-		--sha "$(GIT_SHA)" $(RELEASE_ASSEMBLE_FLAGS) $(CATALOG_ASSETS_FLAG) --out-dir target/release/dist
-	$(RELEASE_VERIFY_DECODER)
-	python3 scripts/release/verify_release.py \
-		--dist-dir target/release/dist --version "$(VERSION)" --target "$(TARGET)" \
-		--sha "$(GIT_SHA)"
-
 # Optional hardening: embed the dependency list in the binary for incident
 # response.
 audit-build:
@@ -171,4 +153,4 @@ shard-gates:
 	python3 scripts/test_ci_test_shard.py
 	python3 scripts/test_ci_pr_crates.py
 
-.PHONY: check deny windows-cross actionlint glibc-gate release-dry-run continuous-dry-run audit-build package catalog-assets catalog-assets-fixture catalog-assets-gates fold-gates restamp-gates shard-gates
+.PHONY: check deny windows-cross actionlint glibc-gate release-dry-run audit-build package catalog-assets catalog-assets-fixture catalog-assets-gates fold-gates restamp-gates shard-gates
