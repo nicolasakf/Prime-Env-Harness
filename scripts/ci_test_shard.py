@@ -69,6 +69,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # `cargo test --workspace` builds every example to prove it compiles but
 # never runs it; the owning shard repeats the same build-only contract.
 COMPILE_ONLY_KINDS = ("examples",)
+# Lib suites that drive real worker sockets and timers: run fully parallel on a
+# shared runner their abort/kill tests miss their windows (each passes alone),
+# so they take turns this many at a time.
+LIB_TEST_THREADS = {"pa-daemon": 2}
 
 
 def _target_flag(kind: str, name: str | None) -> list[str]:
@@ -153,6 +157,9 @@ def enumerate_units() -> list[dict]:
 
 def run_unit(unit: dict) -> dict:
     cmd = ["cargo", "test", "--locked", "-p", unit["package"], *unit["target_args"]]
+    threads = LIB_TEST_THREADS.get(unit["package"])
+    if unit["kind"] == "lib" and threads:
+        cmd += ["--", f"--test-threads={threads}"]
     start = time.monotonic()
     # Streaming (not capture-then-print) so a hung binary is attributable from
     # the live log: the unit header is printed before the invocation starts.
