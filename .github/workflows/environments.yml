@@ -8,7 +8,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@ce678459e9fc7500d337468f904b95f1b5c10b5e # pinned toolchain (see ci.yml)
       - uses: actions/setup-node@v4
         with:
           node-version: 22.20.0
