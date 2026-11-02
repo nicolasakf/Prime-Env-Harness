@@ -394,6 +394,11 @@ fn sweep_orphan_test_daemons() {
     }
 }
 
+/// The prompt-stash tests each drive a supervisor plus two TUI runs and
+/// type into the headless editor; run together on a loaded runner they miss
+/// their render windows, so they take turns.
+static STASH_E2E_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[allow(clippy::zombie_processes)]
 fn spawn_supervisor(dir: &Path) -> Supervisor {
     sweep_orphan_test_daemons();
@@ -3331,6 +3336,7 @@ async fn tui_renames_session_through_slash_command() {
                 needle: "No conversation title model is configured".to_string(),
                 timeout_ms: 30_000,
             },
+            pa_tui::interactive::HeadlessStep::WaitMs(300),
         ],
         width: 120,
         height: 36,
@@ -3705,6 +3711,7 @@ async fn tui_esc_closes_the_completion_menu_without_interrupting_the_turn() {
 #[tokio::test]
 async fn tui_prompt_stash_round_trips_across_in_place_switch() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let _stash_guard = STASH_E2E_LOCK.lock().await;
 
     let dir = tempfile::TempDir::new().expect("temp dir");
     let agent_dir = dir.path().join("agent");
@@ -3841,6 +3848,7 @@ async fn tui_prompt_stash_round_trips_across_in_place_switch() {
 #[tokio::test]
 async fn tui_prompt_stash_survives_the_agents_view_handoff() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let _stash_guard = STASH_E2E_LOCK.lock().await;
 
     let dir = tempfile::TempDir::new().expect("temp dir");
     let agent_dir = dir.path().join("agent");
@@ -4017,6 +4025,7 @@ async fn tui_prompt_stash_survives_the_agents_view_handoff() {
 #[tokio::test]
 async fn tui_prompt_stash_restores_a_pasted_image_with_the_draft() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let _stash_guard = STASH_E2E_LOCK.lock().await;
 
     let dir = tempfile::TempDir::new().expect("temp dir");
     let agent_dir = dir.path().join("agent");
