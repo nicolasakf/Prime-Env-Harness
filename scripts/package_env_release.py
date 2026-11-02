@@ -28,7 +28,6 @@ import re
 import shutil
 import sys
 import tarfile
-import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -72,8 +71,10 @@ def fail(message):
 
 
 def workspace_version():
-    manifest = tomllib.loads((ROOT / "Cargo.toml").read_text())
-    return manifest["workspace"]["package"]["version"]
+    # The Linux build container ships Python 3.10, which has no tomllib.
+    section = (ROOT / "Cargo.toml").read_text().split("[workspace.package]", 1)[1]
+    section = section.split("\n[", 1)[0]
+    return re.search(r'^version\s*=\s*"([^"]+)"', section, re.MULTILINE).group(1)
 
 
 def copy_tree(source, target):
