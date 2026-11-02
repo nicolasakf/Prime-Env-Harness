@@ -88,6 +88,17 @@ impl EnvironmentManager {
                     EnvironmentLanguage::Python => PYTHON_IMAGE,
                     EnvironmentLanguage::TypeScript => NODE_IMAGE,
                 };
+                // Run as the directory's owner: with every capability dropped, root
+                // cannot write a bind mount owned by another user on a Linux host,
+                // and root-owned output would be left behind in the cache.
+                #[cfg(unix)]
+                let prepare_user = {
+                    use std::os::unix::fs::MetadataExt;
+                    let owner = std::fs::metadata(&prepared)?;
+                    format!("{}:{}", owner.uid(), owner.gid())
+                };
+                #[cfg(not(unix))]
+                let prepare_user = "0:0".to_string();
                 let mut command = sanitized_command("docker");
                 command
                     .args([
@@ -98,9 +109,9 @@ impl EnvironmentManager {
                         "--security-opt",
                         "no-new-privileges",
                         "--user",
-                        "0:0",
-                        "--mount",
                     ])
+                    .arg(prepare_user)
+                    .args(["--env", "HOME=/tmp", "--mount"])
                     .arg(format!(
                         "type=bind,src={},dst=/definition",
                         prepared.display()
