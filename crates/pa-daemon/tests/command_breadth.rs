@@ -533,12 +533,18 @@ const WIRE_FIXTURES: &[(&str, &str)] = &[
     ),
 ];
 
-/// The accept list is the TS list, in TS order, followed by the Rust-native
-/// supervisor/worker frames.
+/// Past the harness's own `env` extension frame, the accept list is the
+/// inherited TS list, in TS order, followed by the Rust-native supervisor/worker
+/// frames.
 #[test]
 fn known_command_types_match_the_ts_list() {
-    assert!(KNOWN_COMMAND_TYPES.len() > TS_DAEMON_COMMAND_TYPES.len());
-    let (head, tail) = KNOWN_COMMAND_TYPES.split_at(TS_DAEMON_COMMAND_TYPES.len());
+    let inherited: Vec<&str> = KNOWN_COMMAND_TYPES
+        .iter()
+        .copied()
+        .filter(|type_name| *type_name != "env")
+        .collect();
+    assert!(inherited.len() > TS_DAEMON_COMMAND_TYPES.len());
+    let (head, tail) = inherited.split_at(TS_DAEMON_COMMAND_TYPES.len());
     assert_eq!(
         head, TS_DAEMON_COMMAND_TYPES,
         "accept list must start with the TS list"

@@ -567,7 +567,7 @@ fn bundled_skills_match_the_ts_packaged_set() {
     );
     assert_eq!(
         mcp_skill.description,
-        "Use external MCP services generically from Python - search the supported-service catalog, inspect the user's connections, discover live tool schemas, and call tools on any connection (Notion, Linear, Slack, and the rest of the catalog) without per-service packages."
+        "Default for web research: use Exa's public MCP directly without API-key setup or a Prime Env Harness connection. Also use external MCP services through Prime Env Harness connections. Respect Exa's anonymous rate limits.",
     );
 }
 
