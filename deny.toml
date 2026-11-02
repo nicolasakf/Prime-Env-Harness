@@ -21,6 +21,11 @@ ignore = [
   # no vulnerable code path). Reviewed 2026-09-17; revisit when ratatui
   # drops the dep.
   { id = "RUSTSEC-2024-0436", reason = "unmaintained proc-macro via ratatui, build-time only (reviewed 2026-09-17)" },
+  # `unsafe-libyaml` is unmaintained and has no safe upgrade; pulled by the
+  # deprecated `serde_yaml` in pa-core, which only parses local, user-owned
+  # YAML. No known vulnerability. Reviewed 2026-11-02; replace serde_yaml
+  # with a maintained YAML crate and drop this entry.
+  { id = "RUSTSEC-2024-0449", reason = "unmaintained, no known vulnerability; serde_yaml parses local user-owned YAML only (reviewed 2026-11-02)" },
 ]
 
 [licenses]
