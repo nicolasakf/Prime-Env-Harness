@@ -4,7 +4,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/nicolasakf/Prime-Env-Harness/main/install.sh | sh
 #
 # Environment:
-#   PRIME_ENV_HARNESS_VERSION   release to install, e.g. 0.1.0 (default: the latest release)
+#   PRIME_ENV_HARNESS_VERSION   release to install, e.g. 0.1.1 (default: the latest release)
 #   PRIME_ENV_HARNESS_PREFIX    install root (default: ~/.local/share/prime-env-harness)
 #   PRIME_ENV_HARNESS_BIN_DIR   where the launcher goes (default: ~/.local/bin)
 #

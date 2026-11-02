@@ -4,7 +4,7 @@ All notable changes to Prime Env Harness are listed here. The release workflow
 publishes the section matching a tag as that release's notes, so every tagged
 version needs a `## <version> - <date>` heading.
 
-## 0.1.0 - 2026-11-02
+## 0.1.1 - 2026-11-02
 
 The first public release. Prime Env Harness started from
 [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) by Prime Intellect

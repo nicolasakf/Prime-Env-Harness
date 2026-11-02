@@ -1364,7 +1364,7 @@ checksum = "1a80800c0488c3a21695ea981a54918fbb37abf04f4d0720c453632255e2ff0e"
 
 [[package]]
 name = "pa-agent"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "futures",
@@ -1377,7 +1377,7 @@ dependencies = [
 
 [[package]]
 name = "pa-ai"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -1405,7 +1405,7 @@ dependencies = [
 
 [[package]]
 name = "pa-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "pa-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -1474,7 +1474,7 @@ dependencies = [
 
 [[package]]
 name = "pa-daemon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "filetime",
@@ -1499,7 +1499,7 @@ dependencies = [
 
 [[package]]
 name = "pa-environments"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "jsonschema",
@@ -1516,7 +1516,7 @@ dependencies = [
 
 [[package]]
 name = "pa-models"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "hex",
  "hmac",
@@ -1534,7 +1534,7 @@ dependencies = [
 
 [[package]]
 name = "pa-telemetry"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "reqwest",
@@ -1548,7 +1548,7 @@ dependencies = [
 
 [[package]]
 name = "pa-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -1573,7 +1573,7 @@ dependencies = [
 
 [[package]]
 name = "pa-types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "libc",
