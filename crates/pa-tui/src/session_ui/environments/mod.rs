@@ -126,7 +126,10 @@ impl SessionUi {
     /// and stop pickers refetch them each time they open.
     pub(super) async fn refresh_environment_runs(&mut self) -> Result<()> {
         let result = self
-            .environment_request("controls", json!({"include_ended": true}))
+            .environment_request(
+                "controls",
+                json!({"include_ended": true, "announce": false}),
+            )
             .await?;
         self.environment_runs = serde_json::from_value(result["runs"].clone())?;
         Ok(())

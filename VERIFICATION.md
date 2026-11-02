@@ -296,3 +296,6 @@ These tests carry an `#[ignore = "..."]` with the reason at the test. Run them w
 - `abort_and_send_queued_with_only_follow_ups_starts_the_oldest`
   (`pa-daemon/src/worker/tests/abort_boundary_tests.rs`): passes alone, fails inside the
   full lib run; the cross-test interference on the shared faux queue is not found.
+- `terminal_create_validate_save_enter_form_leave_resume`
+  (`pa-cli/tests/environment_tui_e2e.rs`): the Play card form step intermittently reports
+  "card is not owned by this participant" for the card the fixture deals to the human.

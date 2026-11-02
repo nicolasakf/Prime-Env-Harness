@@ -465,7 +465,7 @@ impl SessionUi {
             // A session whose engine serves no environment requests rejects
             // the listing; the attach carries on with an empty one.
             match self
-                .environment_request("instances", serde_json::json!({}))
+                .environment_request("instances", serde_json::json!({"announce": false}))
                 .await
             {
                 Ok(instances) => serde_json::from_value(instances["instances"].clone())?,
@@ -481,7 +481,7 @@ impl SessionUi {
                 .supports_server_capability(pa_types::environments::ENVIRONMENT_CAPABILITY)
         {
             match self
-                .environment_request("catalog", serde_json::json!({}))
+                .environment_request("catalog", serde_json::json!({"announce": false}))
                 .await
             {
                 Ok(catalog) => serde_json::from_value(catalog["definitions"].clone())?,

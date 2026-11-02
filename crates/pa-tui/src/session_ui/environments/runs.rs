@@ -85,7 +85,7 @@ impl SessionUi {
                     id: None,
                     active_session_id,
                     operation: "controls".into(),
-                    parameters: json!({"include_ended": true}),
+                    parameters: json!({"include_ended": true, "announce": false}),
                     rest: Map::default(),
                 }),
             )

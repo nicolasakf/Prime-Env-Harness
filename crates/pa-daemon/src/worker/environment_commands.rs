@@ -64,11 +64,10 @@ impl Worker {
                 self.request_abort();
                 self.await_session_work_settled().await;
             }
-            // The attach's listings and the dock's run refresh carry no UI
-            // origin and nothing renders them: announcing them would add
+            // A client reading state in the background (the attach's listings,
+            // the dock's run refresh) says so: announcing those reads would add
             // transcript rows and event sequence numbers to every session.
-            let announce =
-                !(origin.is_null() && matches!(operation, "controls" | "catalog" | "instances"));
+            let announce = payload["parameters"]["announce"].as_bool().unwrap_or(true);
             if announce {
                 self.emit_worker_event(
                     json!({"type":"environment_update","operation":operation,"phase":"starting","ui_origin":origin}),
