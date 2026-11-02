@@ -202,7 +202,6 @@ fn chat_options(socket: PathBuf, cwd: PathBuf) -> InteractiveOptions {
 /// rows (the adopt is output-neutral; the frames prove the flow and the
 /// content, the unit tests prove the packs were the source).
 #[tokio::test]
-#[ignore = "since the environment UI joined the chat, the re-attach key differs from the held handoff (entry count 1 vs 2, event sequence 8 vs 6), so the re-entry re-renders instead of reusing the packs; the frames are identical either way; restoring the reuse is a follow-up"]
 async fn the_roundtrip_reentry_renders_the_same_transcript() {
     let _handoff_guard = HANDOFF_E2E_LOCK.lock().await;
     let dir = tempfile::TempDir::new().expect("temp dir");
@@ -351,7 +350,6 @@ async fn the_roundtrip_reentry_renders_the_same_transcript() {
 /// adopts — the re-entry's first draw serves the held packs (the
 /// observable the byte-identical frames cannot prove on their own).
 #[tokio::test]
-#[ignore = "since the environment UI joined the chat, the re-attach key differs from the held handoff (entry count 1 vs 2, event sequence 8 vs 6), so the re-entry re-renders instead of reusing the packs; the frames are identical either way; restoring the reuse is a follow-up"]
 async fn a_post_turn_sojourn_reentry_still_serves_the_held_packs() {
     let _handoff_guard = HANDOFF_E2E_LOCK.lock().await;
     let dir = tempfile::TempDir::new().expect("temp dir");

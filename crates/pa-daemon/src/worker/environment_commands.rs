@@ -64,9 +64,16 @@ impl Worker {
                 self.request_abort();
                 self.await_session_work_settled().await;
             }
-            self.emit_worker_event(
-                json!({"type":"environment_update","operation":operation,"phase":"starting","ui_origin":origin}),
-            );
+            // The attach's listings and the dock's run refresh carry no UI
+            // origin and nothing renders them: announcing them would add
+            // transcript rows and event sequence numbers to every session.
+            let announce =
+                !(origin.is_null() && matches!(operation, "controls" | "catalog" | "instances"));
+            if announce {
+                self.emit_worker_event(
+                    json!({"type":"environment_update","operation":operation,"phase":"starting","ui_origin":origin}),
+                );
+            }
             return Some(
                 match engine
                     .environment_command(operation, &payload["parameters"])
@@ -86,11 +93,15 @@ impl Worker {
                             }
                             drop(lease);
                         }
-                        self.emit_worker_event(json!({"type":"environment_update","operation":operation,"phase":"ready","data":data,"ui_origin":origin}));
+                        if announce {
+                            self.emit_worker_event(json!({"type":"environment_update","operation":operation,"phase":"ready","data":data,"ui_origin":origin}));
+                        }
                         response_success(None, "env", Some(data))
                     }
                     Err(error) => {
-                        self.emit_worker_event(json!({"type":"environment_update","operation":operation,"phase":"failed","error":format!("{error:#}"),"ui_origin":origin}));
+                        if announce {
+                            self.emit_worker_event(json!({"type":"environment_update","operation":operation,"phase":"failed","error":format!("{error:#}"),"ui_origin":origin}));
+                        }
                         response_failure(None, "env", &format!("{error:#}"), None)
                     }
                 },

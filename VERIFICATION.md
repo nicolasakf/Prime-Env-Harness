@@ -296,7 +296,3 @@ These tests carry an `#[ignore = "..."]` with the reason at the test. Run them w
 - `abort_and_send_queued_with_only_follow_ups_starts_the_oldest`
   (`pa-daemon/src/worker/tests/abort_boundary_tests.rs`): passes alone, fails inside the
   full lib run; the cross-test interference on the shared faux queue is not found.
-- `the_roundtrip_reentry_renders_the_same_transcript` and
-  `a_post_turn_sojourn_reentry_still_serves_the_held_packs`
-  (`pa-cli/tests/chat_agents_chat_roundtrip_e2e.rs`): the agents-view re-entry no longer
-  matches the held layout key, so it re-renders (identical output); reuse is to be restored.
