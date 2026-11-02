@@ -530,19 +530,23 @@ impl AgentSessionEngine {
     }
 
     pub(crate) async fn active_environment(&self) -> Result<Option<Arc<ActiveInstance>>> {
-        if self.session_is_closed() {
-            bail!("participant session has been left; explicitly resume its instance");
-        }
-        if self
+        let seat = self
             .create_resources
             .read()
             .map_err(|_| anyhow::anyhow!("environment config lock poisoned"))?
             .environment_seat
-            .is_some()
-        {
-            return Ok(None);
+            .is_some();
+        let binding = if seat {
+            None
+        } else {
+            self.participant_binding()?
+        };
+        // A session being replaced is marked closed while its successor
+        // builds; only a participant must stay left once it has left.
+        if (seat || binding.is_some()) && self.session_is_closed() {
+            bail!("participant session has been left; explicitly resume its instance");
         }
-        let Some(id) = self.participant_binding()? else {
+        let Some(id) = binding else {
             return Ok(None);
         };
         let mut slot = self.environment.lock().await;
