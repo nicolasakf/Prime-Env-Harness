@@ -326,7 +326,7 @@ fn session_rows(harness: &Harness, type_: &str) -> Vec<Value> {
         .find(|path| {
             path.file_name()
                 .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("grown-import"))
+                .is_some_and(|name| name.starts_with("grown-import") && name.ends_with(".jsonl"))
         })
         .expect("the imported session's copy in the session dir");
     std::fs::read_to_string(file)
