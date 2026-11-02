@@ -3359,8 +3359,10 @@ async fn tui_renames_session_through_slash_command() {
         rendered.contains("Session name set: my session"),
         "the /rename status row rendered:\n{rendered}"
     );
+    // The row wraps at the pane width, so compare the words, not the rows.
+    let words = rendered.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        rendered.contains("No conversation title model is configured. Set one in /settings."),
+        words.contains("No conversation title model is configured. Set one in /settings."),
         "the /name refusal row rendered:\n{rendered}"
     );
     // The #188/#194 persistence: the session file carries the session_info
@@ -3790,6 +3792,10 @@ async fn tui_prompt_stash_round_trips_across_in_place_switch() {
             pa_tui::interactive::HeadlessStep::WaitMs(500),
             // Switch back: the stashed draft returns to the editor.
             pa_tui::interactive::HeadlessStep::Submit(format!("/switch {first}")),
+            pa_tui::interactive::HeadlessStep::WaitRender {
+                needle: "Restored stashed prompt".to_string(),
+                timeout_ms: 30_000,
+            },
             // The restored draft is live: Enter submits it — to session A.
             enter(),
             pa_tui::interactive::HeadlessStep::WaitIdle { timeout_ms: 30_000 },
@@ -3953,7 +3959,10 @@ async fn tui_prompt_stash_survives_the_agents_view_handoff() {
     // store restores the stashed draft into the fresh editor.
     let plan_two = pa_tui::interactive::HeadlessPlan {
         steps: vec![
-            pa_tui::interactive::HeadlessStep::WaitMs(300),
+            pa_tui::interactive::HeadlessStep::WaitRender {
+                needle: "Restored stashed prompt".to_string(),
+                timeout_ms: 30_000,
+            },
             // The restored draft is live: Enter submits it.
             pa_tui::interactive::HeadlessStep::Key(KeyEvent::new(
                 KeyCode::Enter,
@@ -4118,7 +4127,10 @@ async fn tui_prompt_stash_restores_a_pasted_image_with_the_draft() {
             pa_tui::interactive::HeadlessStep::Submit(format!("/switch {second}")),
             pa_tui::interactive::HeadlessStep::WaitMs(300),
             pa_tui::interactive::HeadlessStep::Submit(format!("/switch {first}")),
-            pa_tui::interactive::HeadlessStep::WaitMs(300),
+            pa_tui::interactive::HeadlessStep::WaitRender {
+                needle: "Restored stashed prompt".to_string(),
+                timeout_ms: 30_000,
+            },
             // Submit the restored draft: the marker must resolve to the
             // stashed image bytes.
             enter(),
