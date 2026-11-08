@@ -12,6 +12,9 @@ use crate::types::{
 };
 use crate::utils_inner::sanitize_unicode::sanitize_surrogates;
 
+/// `reasoning_content` sent for replayed assistant turns that have no reasoning of their own.
+const MISSING_REASONING_PLACEHOLDER: &str = "(reasoning not available for this earlier turn)";
+
 /// Convert a conversation into Chat Completions `messages` params.
 /// Port of `convertMessages` including tool-result bridging and image replay.
 // Long by design (a 1:1 port of the upstream provider shape); refactoring is out of scope for the zero-behavior pedantic sweep.
@@ -244,7 +247,13 @@ pub fn convert_messages(model: &Model, context: &Context, compat: &ResolvedCompa
                     && model.reasoning
                     && !assistant_msg.contains_key("reasoning_content")
                 {
-                    assistant_msg.insert("reasoning_content".into(), json!(""));
+                    // Turns replayed from a session that began on another model carry no
+                    // reasoning. Some endpoints reject an empty string as "missing", so send
+                    // a short non-empty placeholder instead.
+                    assistant_msg.insert(
+                        "reasoning_content".into(),
+                        json!(MISSING_REASONING_PLACEHOLDER),
+                    );
                 }
                 if !replay_reasoning_details.is_empty()
                     && assistant_msg.get("content") == Some(&Value::Null)
@@ -532,6 +541,7 @@ pub(crate) fn map_stop_reason(reason: &str) -> (StopReason, Option<String>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::providers::openai_completions::detect_compat;
     use crate::types::{ModelCost, ModelInput};
     use pa_types::JsNumber;
 
@@ -626,6 +636,51 @@ mod tests {
         assert!((usage.cost.output.as_f64() - 0.03).abs() < 1e-9);
         assert!((usage.cost.cache_read.as_f64() - 0.0).abs() < 1e-9);
         assert!((usage.cost.total.as_f64() - 0.15).abs() < 1e-9);
+    }
+
+    #[test]
+    fn replayed_turn_without_reasoning_gets_non_empty_reasoning_content() {
+        let mut model = model("gateway", 0.0, 0.0);
+        model.reasoning = true;
+        let mut compat = detect_compat(&model);
+        compat.requires_reasoning_content_on_assistant_messages = true;
+        let usage = json!({
+            "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 0,
+            "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0},
+        });
+        // The earlier assistant turn came from another model and kept no reasoning.
+        let context: Context = serde_json::from_value(json!({
+            "messages": [
+                {"role": "user", "content": "go", "timestamp": 1},
+                {
+                    "role": "assistant",
+                    "content": [{"type": "toolCall", "id": "c1", "name": "t", "arguments": {}}],
+                    "api": "openai-completions",
+                    "provider": "gateway",
+                    "model": "other",
+                    "usage": usage,
+                    "stopReason": "toolUse",
+                    "timestamp": 2,
+                },
+                {
+                    "role": "toolResult", "toolCallId": "c1", "toolName": "t",
+                    "content": [{"type": "text", "text": "ok"}], "isError": false, "timestamp": 3,
+                },
+                {"role": "user", "content": "again", "timestamp": 4},
+            ],
+        }))
+        .expect("context parses");
+
+        let messages = convert_messages(&model, &context, &compat);
+
+        let assistant = messages
+            .iter()
+            .find(|message| message["role"] == "assistant")
+            .expect("assistant turn is replayed");
+        assert_eq!(
+            assistant["reasoning_content"],
+            MISSING_REASONING_PLACEHOLDER
+        );
     }
 
     #[test]
